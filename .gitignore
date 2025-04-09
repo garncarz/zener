@@ -1,0 +1,7 @@
+.ipynb_checkpoints/
+OUTPUT/
+
+*.dat
+*.txt
+
+zener
