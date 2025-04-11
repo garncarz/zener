@@ -2,6 +2,8 @@
 OUTPUT/
 
 *.dat
+*.json
+*.png
 *.txt
 
 zener
