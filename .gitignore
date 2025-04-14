@@ -3,6 +3,7 @@ OUTPUT/
 
 *.dat
 *.json
+*.pkl
 *.png
 *.txt
 
