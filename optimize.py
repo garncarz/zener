@@ -174,8 +174,8 @@ class GAAll:
             ],
             save_best_solutions=True,
             parallel_processing=['process', 4],
-            on_generation=self.on_generation,
         )
+        self.ga.on_generation = self.on_generation
 
     def load_ga(self):
         try:
@@ -187,7 +187,7 @@ class GAAll:
 
             # this needs to be renewed:
             ga.fitness_func = self.fitness_func
-            ga.on_generation = self.on_generation
+            ga.num_generations = settings.num_generations
 
             return ga
         except Exception:
