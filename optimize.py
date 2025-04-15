@@ -173,9 +173,12 @@ class GAAll:
                 {'low': 0.1, 'high': 10},    # Alpha
             ],
             save_best_solutions=True,
-            parallel_processing=['process', 4],
         )
         self.ga.on_generation = self.on_generation
+
+        if settings.parallel_processing > 1:
+            self.ga.parallel_processing=['process', settings.parallel_processing]
+            logger.info(f'Using {settings.parallel_processing} parallel processes.')
 
     def load_ga(self):
         try:
