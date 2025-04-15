@@ -1,3 +1,5 @@
+import logging
+
 from pydantic import FilePath
 from pydantic_settings import BaseSettings
 
@@ -9,4 +11,5 @@ class Settings(BaseSettings):
     num_generations: int = 3
 
 
+logging.basicConfig(level=logging.INFO)
 settings = Settings()

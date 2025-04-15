@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import logging
 import random
 
 import numpy as np
@@ -7,6 +8,9 @@ import pandas as pd
 
 from common import change_dir, parse_signal_file
 from settings import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 def noise_for(val):
@@ -78,6 +82,7 @@ def generate_testing_data(Rsig):
 
 
 def generate_all_testing_data():
+    logger.info(f'Generating testing data using noise = {settings.noise_range}...')
     for label, Rsig in parse_signal_file().items():
         df = generate_testing_data(Rsig)
         with change_dir(label):

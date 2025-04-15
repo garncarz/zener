@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,6 +11,9 @@ from tqdm import tqdm
 
 from common import change_dir, parse_signal_file
 from settings import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 Np = 21  # Number of periods Tp
@@ -55,7 +59,7 @@ class GASubject:
         self.dt = self.df_target.iloc[1].time - self.df_target.iloc[0].time
         self.Tp = self.dt * Nsamp
 
-        print(f'{self.label} loaded')
+        logger.info(f'Testing data loaded: {self.label}')
 
     def compute_all(self, params):
         Em, Tau_e, Tau_s, EmNL, Alpha = params
@@ -170,25 +174,24 @@ class GAAll:
             ],
             save_best_solutions=True,
             parallel_processing=['process', 4],
-            # on_generation=self.on_generation,
+            on_generation=self.on_generation,
         )
-
-        # self.pbar = tqdm(total=settings.NUM_GENERATIONS)
 
     def fitness_func(self, ga_instance, solution, solution_idx):
         return [subj.fitness_func(ga_instance, solution, solution_idx) for subj in self.subjects.values()]
 
     def on_generation(self, ga):
-        self.pbar.set_postfix(fitness=f'{self.ga.last_generation_fitness[0]:.4e}')
-        self.pbar.n = self.ga.generations_completed
-        self.pbar.refresh()
+        logger.info(
+            f'Generation {ga.generations_completed}/{settings.num_generations}, '
+            f'fitness: {ga.last_generation_fitness}'
+        )
 
     def run(self):
         self.ga.run()
 
     def save_result(self):
         solution, solution_fitness, _ = self.ga.best_solution()
-        print('Best solution:', solution, solution_fitness)
+        logger.info(f'Best solution: {solution}, fitness: {solution_fitness}')
 
         Em, Tau_e, Tau_s, EmNL, Alpha = solution
         with open('solution.json', 'w') as f:
