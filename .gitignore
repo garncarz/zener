@@ -1,6 +1,9 @@
+.env
+
 .ipynb_checkpoints/
 OUTPUT/
 
+*.bak
 *.dat
 *.json
 *.pkl

@@ -2,9 +2,11 @@ import logging
 import os
 
 from pydantic import Field, FilePath
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file='.env')
+
     input_signals: FilePath = 'Rsig-Samp.txt'
 
     noise_range: float = 0.005
