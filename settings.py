@@ -10,6 +10,8 @@ class Settings(BaseSettings):
 
     num_generations: int = 3
 
+    ga_filename: str = 'ga_instance'
+
 
 logging.basicConfig(level=logging.INFO)
 settings = Settings()

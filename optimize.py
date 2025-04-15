@@ -155,7 +155,7 @@ class GAAll:
     def __init__(self):
         self.subjects = {label: GASubject(label, Rsig) for label, Rsig in parse_signal_file().items()}
 
-        self.ga = pygad.GA(
+        self.ga = self.load_ga() or pygad.GA(
             num_generations=settings.num_generations,
             stop_criteria=['reach_-10', 'saturate_15'],
             num_parents_mating=5,
@@ -177,6 +177,22 @@ class GAAll:
             on_generation=self.on_generation,
         )
 
+    def load_ga(self):
+        try:
+            ga = pygad.load(settings.ga_filename)
+            logger.info(
+                f'Saved GA instance loaded from {settings.ga_filename} '
+                f'with {ga.generations_completed} generations completed.'
+            )
+
+            # this needs to be renewed:
+            ga.fitness_func = self.fitness_func
+            ga.on_generation = self.on_generation
+
+            return ga
+        except Exception:
+            return None
+
     def fitness_func(self, ga_instance, solution, solution_idx):
         return [subj.fitness_func(ga_instance, solution, solution_idx) for subj in self.subjects.values()]
 
@@ -185,6 +201,7 @@ class GAAll:
             f'Generation {ga.generations_completed}/{settings.num_generations}, '
             f'fitness: {ga.last_generation_fitness}'
         )
+        self.ga.save(settings.ga_filename)
 
     def run(self):
         self.ga.run()
@@ -204,7 +221,7 @@ class GAAll:
                 'fitness': solution_fitness.tolist(),
             }, f, indent=4)
 
-        self.ga.save('ga_instance')
+        self.ga.save(settings.ga_filename)
 
         plt_fitness = self.ga.plot_fitness()
         plt_fitness.savefig('fitness.png')
