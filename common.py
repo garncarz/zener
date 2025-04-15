@@ -1,6 +1,8 @@
 from contextlib import contextmanager
 import os
 
+from settings import settings
+
 @contextmanager
 def change_dir(target_dir):
     prev_dir = os.getcwd()
@@ -11,7 +13,7 @@ def change_dir(target_dir):
     finally:
         os.chdir(prev_dir)
 
-def parse_signal_file(filename='Rsig-Samp.txt'):
+def parse_signal_file(filename=settings.input_signals):
     signals = {}
     header = None
 

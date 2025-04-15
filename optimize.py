@@ -9,7 +9,7 @@ import pygad
 from tqdm import tqdm
 
 from common import change_dir, parse_signal_file
-import settings
+from settings import settings
 
 
 Np = 21  # Number of periods Tp
@@ -152,7 +152,7 @@ class GAAll:
         self.subjects = {label: GASubject(label, Rsig) for label, Rsig in parse_signal_file().items()}
 
         self.ga = pygad.GA(
-            num_generations=settings.NUM_GENERATIONS,
+            num_generations=settings.num_generations,
             stop_criteria=['reach_-10', 'saturate_15'],
             num_parents_mating=5,
             parent_selection_type='nsga2',  # good for multi-objective
@@ -198,7 +198,7 @@ class GAAll:
                 'Tau_s': Tau_s,
                 'EmNL': EmNL,
                 'Alpha': Alpha,
-                'fitness': solution_fitness,
+                'fitness': solution_fitness.tolist(),
             }, f, indent=4)
 
         self.ga.save('ga_instance')

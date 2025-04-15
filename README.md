@@ -7,6 +7,7 @@ To generate testing data, simply run `./generate.py`.
 To run optimization, run `./optimize.py`.
 
 To override default arguments, see `settings.py`.
+You can override them using env. variables or `.env` file.
 
 Using Jupyter Notebook: `jupyter notebook`
 

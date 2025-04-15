@@ -6,11 +6,11 @@ import numpy as np
 import pandas as pd
 
 from common import change_dir, parse_signal_file
-import settings
+from settings import settings
 
 
 def noise_for(val):
-    return random.triangular(val - settings.NOISE_RANGE, val + settings.NOISE_RANGE, val)
+    return random.triangular(val - settings.noise_range, val + settings.noise_range, val)
 
 
 def generate_testing_data(Rsig):
