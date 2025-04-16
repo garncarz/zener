@@ -1,7 +1,7 @@
 import logging
 import os
 
-from pydantic import Field, FilePath
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     app_name: str = 'Zener'
 
-    input_signals: FilePath = 'Rsig-Samp.txt'
+    input_signals: str = 'Rsig-Samp.txt'
 
     noise_range: float = 0.005
 

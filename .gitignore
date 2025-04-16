@@ -1,6 +1,7 @@
 .env
 
 .ipynb_checkpoints/
+data/
 OUTPUT/
 
 *.bak*
@@ -8,7 +9,6 @@ OUTPUT/
 *.json
 *.pkl
 *.png
-*.txt
 *.zip
 
 fzener
