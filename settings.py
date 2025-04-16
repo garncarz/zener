@@ -7,6 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env')
 
+    app_name: str = 'Zener'
+
     input_signals: FilePath = 'Rsig-Samp.txt'
 
     noise_range: float = 0.005
@@ -16,6 +18,9 @@ class Settings(BaseSettings):
     parallel_processing: int = Field(default_factory=lambda: len(os.sched_getaffinity(0)))
 
     ga_filename: str = 'ga_instance'
+
+    statsd_host: str
+    statsd_port: int = 8125
 
 
 logging.basicConfig(level=logging.INFO)
