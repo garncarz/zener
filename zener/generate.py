@@ -1,13 +1,11 @@
-#!/usr/bin/env python3
-
 import logging
 import random
 
 import numpy as np
 import pandas as pd
 
-from common import change_dir, parse_signal_file
-from settings import settings
+from .common import change_dir, parse_signal_file
+from .settings import settings
 
 
 logger = logging.getLogger(__name__)
@@ -87,7 +85,3 @@ def generate_all_testing_data():
         df = generate_testing_data(Rsig)
         with change_dir(label):
             df.to_csv('ZenerModel.dat', sep='\t', index=False)
-
-
-if __name__ == '__main__':
-    generate_all_testing_data()

@@ -2,8 +2,8 @@
 
 import click
 
-from generate import generate_all_testing_data
-from optimize import GAAll
+from zener.generate import generate_all_testing_data
+from zener.optimize import GAAll
 
 
 @click.command()

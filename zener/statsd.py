@@ -1,6 +1,6 @@
 from statsd import StatsClient
 
-from settings import settings
+from .settings import settings
 
 # cannot be global because of parallelism/serialization:
 def get_statsd():

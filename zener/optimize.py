@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import json
 import logging
 
@@ -9,9 +7,9 @@ import pandas as pd
 import pygad
 from tqdm import tqdm
 
-from common import change_dir, parse_signal_file
-from settings import settings
-import mystatsd as statsd
+from .common import change_dir, parse_signal_file
+from .settings import settings
+from . import statsd
 
 
 logger = logging.getLogger(__name__)
@@ -234,9 +232,3 @@ class GAAll:
 
         for subj in self.subjects.values():
             subj.save_plot(solution)
-
-
-if __name__ == '__main__':
-    ga_all = GAAll()
-    ga_all.run()
-    ga_all.save_result()

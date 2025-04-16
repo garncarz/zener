@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 import os
 
-from settings import settings
+from .settings import settings
 
 @contextmanager
 def change_dir(target_dir):
