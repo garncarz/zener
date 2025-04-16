@@ -209,6 +209,7 @@ class GAAll:
 
         statsd.gauge('generation.fitness.max_min', np.max(np.min(ga.last_generation_fitness, axis=1)))
         statsd.gauge('generation.fitness.mean', np.mean(np.mean(ga.last_generation_fitness, axis=1)))
+        statsd.gauge('generation', ga.generations_completed)
 
     def run(self):
         self.ga.run()
