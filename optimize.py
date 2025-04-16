@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from common import change_dir, parse_signal_file
 from settings import settings
-from mystatsd import statsd
+import mystatsd as statsd
 
 
 logger = logging.getLogger(__name__)
