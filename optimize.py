@@ -224,8 +224,6 @@ class GAAll:
                 'fitness': solution_fitness.tolist(),
             }, f, indent=4)
 
-        self.ga.save(settings.ga_filename)
-
         plt_fitness = self.ga.plot_fitness()
         plt_fitness.savefig('fitness.png')
 
