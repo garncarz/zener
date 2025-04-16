@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from common import change_dir, parse_signal_file
 from settings import settings
-from statsd import statsd
+from mystatsd import statsd
 
 
 logger = logging.getLogger(__name__)
@@ -207,8 +207,8 @@ class GAAll:
         )
         self.ga.save(settings.ga_filename)
 
-        statsd.histogram('generation.fitness.max_min', np.max(np.min(ga.last_generation_fitness, axis=1)))
-        statsd.histogram('generation.fitness.mean', np.mean(np.mean(ga.last_generation_fitness, axis=1)))
+        statsd.gauge('generation.fitness.max_min', np.max(np.min(ga.last_generation_fitness, axis=1)))
+        statsd.gauge('generation.fitness.mean', np.mean(np.mean(ga.last_generation_fitness, axis=1)))
 
     def run(self):
         self.ga.run()
