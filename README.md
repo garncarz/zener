@@ -1,19 +1,23 @@
 # Optimizing parameters for the Zener function used to describe rock stress/strain process
 
+Needed: Python 3
+
 Installing dependencies: `pip install -r requirements.txt`
 
-To generate testing data, simply run `./generate.py`.
+The main entry point is `./zener.py`, it also prints help.
 
-To run optimization, run `./optimize.py`.
+To generate testing data, run `./zener.py --generate`.
+
+To run optimization, run `./zener.py --optimize`.
 Optimalizer state is saved after each generation (iteration) in `ga_instance.pkl` and is reloaded after restart.
 Delete it if you want to start from scratch.
 
 To override default arguments, see `settings.py`.
 You can override them using env. variables or `.env` file.
 
-For example if you want to run optimization with more generations, run `num_generations=100 ./optimize.py`.
+For example if you want to run optimization with more generations, run `num_generations=100 ./zener.py --optimize`.
 
 Using Jupyter Notebook: `jupyter notebook`
 
-Compiling the original Fortran code (by doc. Ivan Janeček): `gfortran -o zener ZenerNLElast-INI-input.f90`.
-Then it is runnable as `./zener`.
+Compiling the original Fortran code (by doc. Ivan Janeček): `gfortran -o fzener ZenerNLElast-INI-input.f90`.
+Then it is runnable as `./fzener`.
