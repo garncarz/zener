@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,7 +20,7 @@ class Settings(BaseSettings):
 
     ga_filename: str = 'ga_instance'
 
-    statsd_host: str
+    statsd_host: Optional[str] = None
     statsd_port: int = 8125
 
 

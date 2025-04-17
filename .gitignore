@@ -12,3 +12,7 @@ OUTPUT/
 *.zip
 
 fzener
+
+# MetaCentrum:
+zener_optimization_job.*
+jobs_info.txt

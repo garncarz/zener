@@ -21,3 +21,10 @@ Using Jupyter Notebook: `jupyter notebook`
 
 Compiling the original Fortran code (by doc. Ivan Janeček): `gfortran -o fzener ZenerNLElast-INI-input.f90`.
 Then it is runnable as `./fzener`.
+
+
+## MetaCentrum
+
+Assuming your project is located under `~/git/zener`, otherwise change it in `zener.sh`.
+
+To schedule a job: `qsub zener.sh` (do not run it directly!)
