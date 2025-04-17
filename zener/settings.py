@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     num_generations: int = 3
 
-    parallel_processing: int = Field(default_factory=lambda: len(os.sched_getaffinity(0)))
+    parallel: int = Field(default_factory=lambda: len(os.sched_getaffinity(0)))
 
     ga_filename: str = 'ga_instance'
 

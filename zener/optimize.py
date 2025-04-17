@@ -8,6 +8,7 @@ import pygad
 from tqdm import tqdm
 
 from .common import change_dir, parse_signal_file
+from .parallel import process_pool
 from .settings import settings
 from . import statsd
 
@@ -52,10 +53,10 @@ class GASubject:
     def load_testing_data(self):
         df_target = pd.read_csv(f'{self.label}/ZenerModel.dat', sep='\s+')
         df_target['time'] = pd.to_numeric(df_target['time'], errors='coerce')
-        self.df_target = df_target.dropna()
-        self.df_target_sorted = self.df_target.sort_values('time')
+        df_target = df_target.dropna()
+        self.df_target_sorted = df_target.sort_values('time')
 
-        self.dt = self.df_target.iloc[1].time - self.df_target.iloc[0].time
+        self.dt = self.df_target_sorted.iloc[1].time - self.df_target_sorted.iloc[0].time
         self.Tp = self.dt * Nsamp
 
         logger.info(f'Testing data loaded: {self.label}')
@@ -104,10 +105,10 @@ class GASubject:
         )
         return merged
 
-    def fitness_func(self, _ga_instance, solution, _solution_idx):
+    def fitness_func(self, solution):
         merged = self.compute_and_merge(solution)
 
-        match_ratio = len(merged) / len(self.df_target)
+        match_ratio = len(merged) / len(self.df_target_sorted)
         if match_ratio < 0.95:
             return -1e9
 
@@ -149,6 +150,11 @@ class GASubject:
             plt.savefig('plots.png')
 
 
+# Helper top-level function to avoid pickling problems when parallelizing
+def _evaluate_subject_fitness(subj, solution):
+    return subj.fitness_func(solution)
+
+
 class GAAll:
 
     def __init__(self):
@@ -175,10 +181,6 @@ class GAAll:
         )
         self.ga.on_generation = self.on_generation
 
-        if settings.parallel_processing > 1:
-            self.ga.parallel_processing=['process', settings.parallel_processing]
-            logger.info(f'Using {settings.parallel_processing} parallel processes.')
-
     def load_ga(self):
         try:
             ga = pygad.load(settings.ga_filename)
@@ -196,7 +198,13 @@ class GAAll:
             return None
 
     def fitness_func(self, ga_instance, solution, solution_idx):
-        return [subj.fitness_func(ga_instance, solution, solution_idx) for subj in self.subjects.values()]
+        if process_pool:
+            futures = [
+                process_pool.submit(_evaluate_subject_fitness, subj, solution)
+                for subj in self.subjects.values()
+            ]
+            return [f.result() for f in futures]
+        return [subj.fitness_func(solution) for subj in self.subjects.values()]
 
     def on_generation(self, ga):
         logger.info(
@@ -211,6 +219,10 @@ class GAAll:
 
     def run(self):
         self.ga.run()
+
+    def shutdown(self):
+        if process_pool:
+            process_pool.shutdown()
 
     def save_result(self):
         solution, solution_fitness, _ = self.ga.best_solution()
