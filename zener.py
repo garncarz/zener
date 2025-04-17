@@ -16,7 +16,7 @@ def zip_filtered_data():
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     zip_name = f'output_{timestamp}.zip'
 
-    with zipfile.ZipFile(zip_name, 'w', compression=zipfile.ZIP_LZMA) as zipf:
+    with zipfile.ZipFile(zip_name, 'w', compression=zipfile.ZIP_DEFLATED) as zipf:
         for file in source.rglob('*'):
             if file.is_file() and file.suffix not in ['.dat', '.pkl', '.zip']:
                 arcname = Path(f'output_{timestamp}') / file.relative_to(source)
