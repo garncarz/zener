@@ -1,8 +1,8 @@
 click
+datadog-api-client
 matplotlib
 numpy
 pandas
 pydantic-settings
 pygad
-statsd
 tqdm

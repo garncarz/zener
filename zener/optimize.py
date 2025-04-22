@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from .common import change_dir, parse_signal_file
 from .settings import settings
-from . import statsd
+from .statsd import statsd
 
 
 logger = logging.getLogger(__name__)
@@ -237,16 +237,17 @@ class GAAll:
         )
         self.ga.save(settings.ga_filename)
 
-        statsd.gauge('generation.fitness.max_min', np.max(np.min(ga.last_generation_fitness, axis=1)))
-        statsd.gauge('generation.fitness.mean', np.mean(np.mean(ga.last_generation_fitness, axis=1)))
-        statsd.gauge('generation', ga.generations_completed)
+        with statsd.batch():
+            statsd.gauge('generation.fitness.max_min', np.max(np.min(ga.last_generation_fitness, axis=1)))
+            statsd.gauge('generation.fitness.mean', np.mean(np.mean(ga.last_generation_fitness, axis=1)))
+            statsd.gauge('generation', ga.generations_completed)
 
-        Em, Tau_e, Tau_s, EmNL, Alpha = ga.best_solutions[-1]
-        statsd.gauge('generation.model.Em', Em)
-        statsd.gauge('generation.model.Tau_e', Tau_e)
-        statsd.gauge('generation.model.Tau_s', Tau_s)
-        statsd.gauge('generation.model.EmNL', EmNL)
-        statsd.gauge('generation.model.Alpha', Alpha)
+            Em, Tau_e, Tau_s, EmNL, Alpha = ga.best_solutions[-1]
+            statsd.gauge('generation.model.Em', Em)
+            statsd.gauge('generation.model.Tau_e', Tau_e)
+            statsd.gauge('generation.model.Tau_s', Tau_s)
+            statsd.gauge('generation.model.EmNL', EmNL)
+            statsd.gauge('generation.model.Alpha', Alpha)
 
     def run(self):
         self.ga.run()
