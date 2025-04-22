@@ -46,7 +46,6 @@ def main(ctx, generate, optimize, result):
             ga_all.run()
         ga_all.save_result()
         zip_filtered_data()
-        ga_all.shutdown()
 
 
 if __name__ == '__main__':

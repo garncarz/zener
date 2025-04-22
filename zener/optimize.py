@@ -8,7 +8,6 @@ import pygad
 from tqdm import tqdm
 
 from .common import change_dir, parse_signal_file
-from .parallel import process_pool
 from .settings import settings
 from . import statsd
 
@@ -182,11 +181,6 @@ class GASubject:
         plt.close(fig)
 
 
-# Helper top-level function to avoid pickling problems when parallelizing
-def _evaluate_subject_fitness(subj, solution):
-    return subj.fitness_func(solution)
-
-
 class GAAll:
 
     def __init__(self):
@@ -213,6 +207,10 @@ class GAAll:
         )
         self.ga.on_generation = self.on_generation
 
+        if settings.parallel > 1:
+            self.ga.parallel_processing=['process', settings.parallel]
+            logger.info(f'PyGAD using {settings.parallel} parallel processes.')
+
     def load_ga(self):
         try:
             ga = pygad.load(settings.ga_filename)
@@ -230,12 +228,6 @@ class GAAll:
             return None
 
     def fitness_func(self, ga_instance, solution, solution_idx):
-        if process_pool:
-            futures = [
-                process_pool.submit(_evaluate_subject_fitness, subj, solution)
-                for subj in self.subjects.values()
-            ]
-            return [f.result() for f in futures]
         return [subj.fitness_func(solution) for subj in self.subjects.values()]
 
     def on_generation(self, ga):
@@ -258,10 +250,6 @@ class GAAll:
 
     def run(self):
         self.ga.run()
-
-    def shutdown(self):
-        if process_pool:
-            process_pool.shutdown()
 
     def save_result(self):
         solution, solution_fitness, _ = self.ga.best_solution()
