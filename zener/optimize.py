@@ -249,6 +249,13 @@ class GAAll:
         statsd.gauge('generation.fitness.mean', np.mean(np.mean(ga.last_generation_fitness, axis=1)))
         statsd.gauge('generation', ga.generations_completed)
 
+        Em, Tau_e, Tau_s, EmNL, Alpha = ga.best_solutions[-1]
+        statsd.gauge('generation.model.Em', Em)
+        statsd.gauge('generation.model.Tau_e', Tau_e)
+        statsd.gauge('generation.model.Tau_s', Tau_s)
+        statsd.gauge('generation.model.EmNL', EmNL)
+        statsd.gauge('generation.model.Alpha', Alpha)
+
     def run(self):
         self.ga.run()
 
@@ -268,6 +275,7 @@ class GAAll:
                 'Tau_s': Tau_s,
                 'EmNL': EmNL,
                 'Alpha': Alpha,
+                'generations': self.ga.generations_completed,
                 'fitness': solution_fitness.tolist(),
             }, f, indent=4)
 
