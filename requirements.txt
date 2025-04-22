@@ -1,6 +1,7 @@
 click
 datadog-api-client
 matplotlib
+numba
 numpy
 pandas
 pydantic-settings
