@@ -168,24 +168,28 @@ class GASubject:
         fig, ax = plt.subplots(figsize=(8, 6))
 
         ax.plot(
-            merged['Stress_target'].to_numpy(), merged['StrainViscEl_target'].to_numpy(),
+            merged['StrainViscEl_target'].to_numpy(),
+            merged['Stress_target'].to_numpy(),
             label='Target StrainViscEl', color='gray', linestyle=':',
         )
         ax.plot(
-            merged['Stress_model'].to_numpy(), merged['StrainViscEl_model'].to_numpy(),
+            merged['StrainViscEl_model'].to_numpy(),
+            merged['Stress_model'].to_numpy(),
             label='Model StrainViscEl', color='black', linestyle='--',
         )
         ax.plot(
-            merged['Stress_target'].to_numpy(), merged['TotStrain_target'].to_numpy(),
+            merged['TotStrain_target'].to_numpy(),
+            merged['Stress_target'].to_numpy(),
             label='Target TotStrain', color='blue', linestyle=':',
         )
         ax.plot(
-            merged['Stress_model'].to_numpy(), merged['TotStrain_model'].to_numpy(),
+            merged['TotStrain_model'].to_numpy(),
+            merged['Stress_model'].to_numpy(),
             label='Model TotStrain', color='lightblue', linestyle='--',
         )
 
-        ax.set_xlabel('Stress')
-        ax.set_ylabel('Strain')
+        ax.set_xlabel('Strain')
+        ax.set_ylabel('Stress')
         ax.grid(True)
         ax.legend()
         plt.tight_layout()
