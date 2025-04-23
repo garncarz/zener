@@ -3,6 +3,7 @@ import logging
 
 import matplotlib.pyplot as plt
 from numba import njit
+from numba.typed import List
 import numpy as np
 import pandas as pd
 import pygad
@@ -98,7 +99,7 @@ class GASubject:
 
     def compute_all(self, params):
         return pd.DataFrame(
-            compute_all(params, self.Rsig, self.Tp, self.dt),
+            compute_all(params, List(self.Rsig), self.Tp, self.dt),
             columns=['time', 'Stress', 'StrainNonLinEl', 'StrainViscEl', 'TotStrain'],
         )
 
