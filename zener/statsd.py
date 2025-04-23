@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+import logging
 import time
 
 from datadog_api_client import ApiClient, Configuration
@@ -11,6 +12,8 @@ from datadog_api_client.v2.model.metric_series import MetricSeries
 
 from .settings import settings
 
+logger = logging.getLogger(__name__)
+
 
 class BatchStatsD:
 
@@ -19,6 +22,7 @@ class BatchStatsD:
 
         self._configuration = Configuration()
         self._configuration.api_key['apiKeyAuth'] = settings.dd_api_key
+        self._configuration.server_variables['site'] = settings.dd_site
 
         self._api_client = ApiClient(self._configuration)
         self._api_instance = MetricsApi(self._api_client)
@@ -71,8 +75,7 @@ class BatchStatsD:
 
 if settings.dd_api_key:
     statsd = BatchStatsD()
-
 else:
     from unittest.mock import MagicMock
-
     statsd = MagicMock()
+    logger.info('Not using Datadog metrics')

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     ga_filename: str = 'ga_instance'
 
     dd_api_key: Optional[str] = None
+    dd_site: Optional[str] = 'datadoghq.eu'
 
 
 logging.basicConfig(level=logging.INFO)
