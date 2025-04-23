@@ -204,7 +204,7 @@ class GAAll:
 
         self.ga = self.load_ga() or pygad.GA(
             num_generations=settings.num_generations,
-            stop_criteria=['reach_-10', 'saturate_15'],
+            stop_criteria=[f'reach_{settings.stop_fitness}', f'saturate_{settings.stop_saturation}'],
             num_parents_mating=5,
             parent_selection_type='nsga2',  # good for multi-objective
             fitness_func=self.fitness_func,

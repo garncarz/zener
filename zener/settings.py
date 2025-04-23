@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     noise_range: float = 0.005
 
     num_generations: int = 3
+    stop_fitness: float = 0
+    stop_saturation: int = 100
 
     parallel: int = Field(default_factory=lambda: len(os.sched_getaffinity(0)))
 
