@@ -1,82 +1,17 @@
 import json
 import logging
 
-import matplotlib.pyplot as plt
-from numba import njit
-from numba.typed import List
 import numpy as np
 import pandas as pd
 import pygad
-from tqdm import tqdm
 
+from . import model, plots
 from .common import change_dir, parse_signal_file
 from .settings import settings
 from .statsd import statsd
 
 
 logger = logging.getLogger(__name__)
-
-
-Np = 21  # Number of periods Tp
-Nsamp = 1000  # Number of samples per period
-
-Sig0 = 1
-t0 = 0.0
-
-@njit
-def fSig(x, x1, Rs):
-    return Rs * (x - x1)
-
-@njit
-def fEpsNL(Sig, EmNL, Alpha):
-    return Sig / (EmNL * (1 + Alpha * Sig))
-
-@njit
-def fEps(x, x1, x2, Rs, Em, Tau_s, Tau_e):
-    return (Rs / Em) * (
-        (x2 - x1) + (Tau_s - Tau_e) * (np.exp(x2 / Tau_e) - np.exp(x1 / Tau_e)) * np.exp(-x / Tau_e)
-    )
-
-@njit
-def fEps0(x, Rs, Em, Tau_s, Tau_e):
-    return fEps(x, t0, x, Rs, Em, Tau_s, Tau_e)
-
-@njit
-def fEpsVE(x, i, Rsig, R, Tp, Em, Tau_s, Tau_e):
-    epsVE = fEps0(x - (i - 1) * Tp, Rsig[i - 1] * R, Em, Tau_s, Tau_e)
-    for k in range(1, i):
-        epsVE += fEps(x, (k - 1) * Tp, k * Tp, Rsig[k - 1] * R, Em, Tau_s, Tau_e)
-    return epsVE
-
-
-@njit
-def compute_all(params, Rsig, Tp, dt):
-    Em, Tau_e, Tau_s, EmNL, Alpha = params
-
-    t = 0.0
-    FvalSig = 0.0
-
-    R = Sig0 / Tp
-
-    rows = []
-
-    for i in range(1, Np + 1):
-        for j in range(Nsamp):
-            t += dt
-            valSig = FvalSig + fSig(t, (i - 1) * Tp, Rsig[i - 1] * R)
-            valEpsNL = fEpsNL(valSig, EmNL, Alpha)
-            valEpsVE = fEpsVE(t, i, Rsig, R, Tp, Em, Tau_s, Tau_e)
-            rows.append([
-                t,
-                valSig,
-                valEpsNL,
-                valEpsVE,
-                valEpsNL + valEpsVE,
-            ])
-
-        FvalSig = valSig
-
-    return rows
 
 
 class GASubject:
@@ -93,13 +28,13 @@ class GASubject:
         self.df_target_sorted = df_target.sort_values('time')
 
         self.dt = self.df_target_sorted.iloc[1].time - self.df_target_sorted.iloc[0].time
-        self.Tp = self.dt * Nsamp
+        self.Tp = self.dt * model.Nsamp
 
         logger.info(f'Testing data loaded: {self.label}')
 
     def compute_all(self, params):
         return pd.DataFrame(
-            compute_all(params, List(self.Rsig), self.Tp, self.dt),
+            model.compute_all(params, self.Rsig, self.Tp, self.dt),
             columns=['time', 'Stress', 'StrainNonLinEl', 'StrainViscEl', 'TotStrain'],
         )
 
@@ -134,68 +69,8 @@ class GASubject:
     def save_plot(self, solution):
         with change_dir(self.label):
             merged = self.compute_and_merge(solution)
-            self._plot_time_series(merged)
-            self._plot_hysteresis(merged)
-
-    def _plot_time_series(self, merged):
-        cols = ['Stress', 'StrainNonLinEl', 'StrainViscEl', 'TotStrain']
-        fig, axes = plt.subplots(len(cols), 1, figsize=(10, 2.5 * len(cols)), sharex=True)
-
-        for i, col in enumerate(cols):
-            ax = axes[i]
-            ax.plot(
-                merged['time'].to_numpy(),
-                merged[f'{col}_target'].to_numpy(),
-                label='Target',
-                color='black',
-                linestyle='--',
-            )
-            ax.plot(
-                merged['time'].to_numpy(),
-                merged[f'{col}_model'].to_numpy(),
-                label='Model',
-                color='blue',
-            )
-            ax.set_ylabel(col)
-            ax.legend()
-            ax.grid(True)
-
-        axes[-1].set_xlabel('Time')
-        plt.tight_layout()
-        plt.savefig('plots.png')
-        plt.close(fig)
-
-    def _plot_hysteresis(self, merged):
-        fig, ax = plt.subplots(figsize=(8, 6))
-
-        ax.plot(
-            merged['StrainViscEl_target'].to_numpy(),
-            merged['Stress_target'].to_numpy(),
-            label='Target StrainViscEl', color='gray', linestyle=':',
-        )
-        ax.plot(
-            merged['StrainViscEl_model'].to_numpy(),
-            merged['Stress_model'].to_numpy(),
-            label='Model StrainViscEl', color='black', linestyle='--',
-        )
-        ax.plot(
-            merged['TotStrain_target'].to_numpy(),
-            merged['Stress_target'].to_numpy(),
-            label='Target TotStrain', color='blue', linestyle=':',
-        )
-        ax.plot(
-            merged['TotStrain_model'].to_numpy(),
-            merged['Stress_model'].to_numpy(),
-            label='Model TotStrain', color='lightblue', linestyle='--',
-        )
-
-        ax.set_xlabel('Strain')
-        ax.set_ylabel('Stress')
-        ax.grid(True)
-        ax.legend()
-        plt.tight_layout()
-        plt.savefig('hysteresis.png')
-        plt.close(fig)
+            plots.plot_time_series(merged)
+            plots.plot_hysteresis(merged)
 
 
 class GAAll:
