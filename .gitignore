@@ -1,6 +1,8 @@
 .env
 
 .ipynb_checkpoints/
+celery*/
+control/
 data/
 OUTPUT/
 

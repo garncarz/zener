@@ -3,7 +3,7 @@ import platform
 import os
 from typing import Optional
 
-from pydantic import Field
+from pydantic import Field, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -21,6 +21,14 @@ class Settings(BaseSettings):
     stop_saturation: int = 100
 
     parallel: int = Field(default_factory=lambda: len(os.sched_getaffinity(0)))
+    use_celery: bool = False
+    celery_broker_dir: str = Field(default_factory=lambda: os.path.join(os.getcwd(), 'celery_broker'))
+    celery_results_dir: str = Field(default_factory=lambda: os.path.join(os.getcwd(), 'celery_results'))
+
+    @validator('celery_broker_dir', 'celery_results_dir', pre=True)
+    def validate_dir(cls, v):
+        os.makedirs(v, exist_ok=True)
+        return v
 
     ga_filename: str = 'ga_instance'
 
@@ -29,4 +37,9 @@ class Settings(BaseSettings):
 
 
 logging.basicConfig(level=logging.INFO)
+
+# To prevent the following spamming:
+# WARNING:kombu.connection:No hostname was supplied. Reverting to default 'localhost'
+logging.getLogger('kombu.connection').setLevel(logging.ERROR)
+
 settings = Settings()

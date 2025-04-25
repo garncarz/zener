@@ -73,10 +73,14 @@ class GASubject:
             plots.plot_hysteresis(merged)
 
 
+def load_subjects():
+    return {label: GASubject(label, Rsig) for label, Rsig in parse_signal_file().items()}
+
+
 class GAAll:
 
     def __init__(self):
-        self.subjects = {label: GASubject(label, Rsig) for label, Rsig in parse_signal_file().items()}
+        self.subjects = load_subjects()
 
         self.ga = self.load_ga() or pygad.GA(
             num_generations=settings.num_generations,
@@ -120,6 +124,13 @@ class GAAll:
             return None
 
     def fitness_func(self, ga_instance, solution, solution_idx):
+        if settings.use_celery:
+            from . import tasks
+            fitness_tasks = tasks.group(
+                tasks.compute_fitness.s(subj.label, solution.tolist())
+                for subj in self.subjects.values()
+            )
+            return fitness_tasks.apply_async().get()
         return [subj.fitness_func(solution) for subj in self.subjects.values()]
 
     def on_generation(self, ga):
