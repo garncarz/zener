@@ -25,3 +25,8 @@ def load_shared_data(sender, **kwargs):
 @app.task
 def compute_fitness(subject_label, solution):
     return app.subjects[subject_label].fitness_func(solution)
+
+
+@app.task
+def save_plots(subject_label, solution):
+    app.subjects[subject_label].save_plots(solution)

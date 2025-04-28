@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pygad
 
-from . import model, plots
+from . import model, plots, tasks
 from .common import change_dir, parse_signal_file
 from .settings import settings
 from .statsd import statsd
@@ -66,21 +66,24 @@ class GASubject:
 
         return -error
 
-    def save_plot(self, solution):
+    def save_plots(self, solution):
         with change_dir(self.label):
             merged = self.compute_and_merge(solution)
             plots.plot_time_series(merged)
             plots.plot_hysteresis(merged)
 
 
-def load_subjects():
-    return {label: GASubject(label, Rsig) for label, Rsig in parse_signal_file().items()}
+def load_subjects(just_labels=False):
+    return {
+        label: GASubject(label, Rsig) if not just_labels else 'Use celery'
+        for label, Rsig in parse_signal_file().items()
+    }
 
 
 class GAAll:
 
     def __init__(self):
-        self.subjects = load_subjects()
+        self.subjects = load_subjects(just_labels=settings.use_celery)
 
         self.ga = self.load_ga() or pygad.GA(
             num_generations=settings.num_generations,
@@ -125,10 +128,9 @@ class GAAll:
 
     def fitness_func(self, ga_instance, solution, solution_idx):
         if settings.use_celery:
-            from . import tasks
             fitness_tasks = tasks.group(
-                tasks.compute_fitness.s(subj.label, solution.tolist())
-                for subj in self.subjects.values()
+                tasks.compute_fitness.s(subj_label, solution.tolist())
+                for subj_label in self.subjects.keys()
             )
             return fitness_tasks.apply_async().get()
         return [subj.fitness_func(solution) for subj in self.subjects.values()]
@@ -174,5 +176,12 @@ class GAAll:
         plt_fitness = self.ga.plot_fitness()
         plt_fitness.savefig('fitness.png')
 
-        for subj in self.subjects.values():
-            subj.save_plot(solution)
+        if settings.use_celery:
+            plots_tasks = tasks.group(
+                tasks.save_plots.s(subj_label, solution.tolist())
+                for subj_label in self.subjects.keys()
+            )
+            plots_tasks.apply_async().join()
+        else:
+            for subj in self.subjects.values():
+                subj.save_plots(solution)
