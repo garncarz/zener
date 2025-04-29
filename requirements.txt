@@ -7,4 +7,5 @@ numpy
 pandas
 pydantic-settings
 pygad
+pytest
 tqdm
