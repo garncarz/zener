@@ -60,3 +60,30 @@ def plot_hysteresis(merged):
     plt.tight_layout()
     plt.savefig('hysteresis.png')
     plt.close(fig)
+
+
+def plot_stress(merged):
+    plt.figure(figsize=(6, 2))
+
+    plt.plot(
+        merged['time'].to_numpy(),
+        merged['Stress_target'].to_numpy(),
+        label='Target',
+        color='black',
+        linestyle='--',
+    )
+    plt.plot(
+        merged['time'].to_numpy(),
+        merged['Stress_model'].to_numpy(),
+        label='Model',
+        color='blue',
+    )
+
+    plt.xlabel('Time')
+    plt.ylabel('Stress')
+    plt.legend()
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.savefig('stress.png')
+    plt.close()
