@@ -7,10 +7,13 @@ from torch.utils.data import DataLoader, TensorDataset
 
 # --- Hyperparameters ---
 window_size_learning = 200 #Sliding window learning
-window_size_interference = 200 #Sliding window interference
+window_size_inference = 200 #Sliding window inference
 params = {'Em': 1, 'Tau_e': 50, 'Tau_s': 25, 'EmNL': 0.2, 'Alpha': 3} #Parameters for the Zener model
 Nsamp = 100
 Nepoch = 100
+batch_size=32
+hidden_size = 64
+num_layers = 2
 
 # --- Data Generator ---
 class data_generator:
@@ -79,15 +82,15 @@ X_list, y_list = [], []
 for df in data:
     for i in range(len(df) - window_size_learning):
         stress_window = df['Stress'].iloc[i:i+window_size_learning].to_numpy().reshape(window_size_learning, 1)
-        strain_window = df[['StrainNL', 'StrainVE']].iloc[i:i+window_size_learning].to_numpy()
+        strain_target = df[['StrainNL', 'StrainVE']].iloc[i+window_size_learning-1].to_numpy()  # last step
         X_list.append(stress_window)
-        y_list.append(strain_window)
+        y_list.append(strain_target)
 
 X = torch.tensor(np.array(X_list), dtype=torch.float32)  # (N, window, 1)
-y = torch.tensor(np.array(y_list), dtype=torch.float32)  # (N, window, 2)
+y = torch.tensor(np.array(y_list), dtype=torch.float32)  # (N, 2)
 
 dataset = TensorDataset(X, y)
-train_loader = DataLoader(dataset, batch_size=32, shuffle=True)
+train_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # --- LSTM Model ---
 class LSTMModel(nn.Module):
@@ -98,9 +101,10 @@ class LSTMModel(nn.Module):
 
     def forward(self, x):
         out, _ = self.lstm(x)
-        return self.fc(out)
+        last_output = out[:, -1, :]  # Take only last time step
+        return self.fc(last_output)
 
-model = LSTMModel()
+model = LSTMModel(hidden_size=hidden_size,num_layers=num_layers)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 loss_fn = nn.MSELoss()
 
@@ -130,8 +134,8 @@ true_ve = test_df['StrainVE'].to_numpy()
 true_tot = test_df['TotStrain'].to_numpy()
 
 test_X = []
-for i in range(len(stress_seq) - window_size_interference):
-    window_stress = stress_seq[i:i+window_size_interference].unsqueeze(1)
+for i in range(len(stress_seq) - window_size_inference):
+    window_stress = stress_seq[i:i+window_size_inference].unsqueeze(1)
     test_X.append(window_stress)
 
 test_X = torch.stack(test_X)
@@ -140,19 +144,19 @@ test_X = torch.stack(test_X)
 model.eval()
 with torch.no_grad():
     preds = model(test_X)
-    pred_nl = preds[:, -1, 0].numpy()
-    pred_ve = preds[:, -1, 1].numpy()
+    pred_nl = preds[:, 0].numpy()
+    pred_ve = preds[:, 1].numpy()
     pred_total = pred_nl + pred_ve
 
 # --- Plot ---
-t_test = test_df['time'].to_numpy()[window_size_interference:]
+t_test = test_df['time'].to_numpy()[window_size_inference:]
 
 plt.figure(figsize=(10, 5))
-plt.plot(t_test, true_tot[window_size_interference:], label="True Total Strain", linewidth=2)
+plt.plot(t_test, true_tot[window_size_inference:], label="True Total Strain", linewidth=2)
 plt.plot(t_test, pred_total, label="Predicted Total Strain", linestyle='--')
-plt.plot(t_test, true_nl[window_size_interference:], label="True StrainNL", alpha=0.5)
+plt.plot(t_test, true_nl[window_size_inference:], label="True StrainNL", alpha=0.5)
 plt.plot(t_test, pred_nl, label="Predicted StrainNL", linestyle='--', alpha=0.5)
-plt.plot(t_test, true_ve[window_size_interference:], label="True StrainVE", alpha=0.5)
+plt.plot(t_test, true_ve[window_size_inference:], label="True StrainVE", alpha=0.5)
 plt.plot(t_test, pred_ve, label="Predicted StrainVE", linestyle='--', alpha=0.5)
 plt.title("Strain Prediction from Stress (No Parameters)")
 plt.xlabel("Time (s)")
@@ -161,4 +165,3 @@ plt.legend()
 plt.grid(True)
 plt.tight_layout()
 plt.show()
-
