@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 def plot_time_series(merged):
-    cols = ['Stress', 'StrainNonLinEl', 'StrainViscEl', 'TotStrain']
+    cols = [col.replace('_target', '') for col in merged.columns if '_target' in col]
     fig, axes = plt.subplots(len(cols), 1, figsize=(10, 2.5 * len(cols)), sharex=True)
 
     for i, col in enumerate(cols):
