@@ -7,6 +7,7 @@ import pandas as pd
 
 from .common import change_dir, parse_signal_file
 from .settings import settings
+from . import model
 
 
 logger = logging.getLogger(__name__)
@@ -16,54 +17,23 @@ def noise_for(val):
     return random.triangular(val - settings.noise_range, val + settings.noise_range, val)
 
 
-def generate_testing_data(Np, Nsamp, Em, Tau_e, Tau_s, EmNL, Alpha, Sig0, Tp, Rsig):
-    # === Derived Values ===
-    R = Sig0 / Tp
-    dt = Tp / Nsamp
-    t = 0.0
-    FvalSig = 0.0
-    FvalEps = 0.0
-    t0 = 0.0
+def generate_testing_data(Np, Nsamp, Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Sig0, Tp, Rsig):
+    dt = min(Tp) / Nsamp  # Compute dt as the minimal step between periods
 
-    # === Model functions ===
-    def fSig(x, x1, Rs):
-        return Rs * (x - x1)
+    params = [Tau_s, EmNL, Alpha]
+    params.extend(Em_F)
+    params.extend(Tau_e_F)
 
-    def fEps(x, x1, x2, Rs):
-        return (Rs / Em) * ((x2 - x1) + (Tau_s - Tau_e) *
-                            (np.exp(x2 / Tau_e) - np.exp(x1 / Tau_e)) *
-                            np.exp(-x / Tau_e))
+    rows = model.compute_all(params, Rsig, Tp, dt)
 
-    def fEps0(x, Rs):
-        return fEps(x, t0, x, Rs)
+    columns = ['time', 'Stress', 'StrainNonLinEl', 'StrainViscEl', 'StrainNL_VE_Total']
+    columns.extend([f'StrainKV_{i}' for i in range(1, model.N_F)])
+    columns.extend(['StrainKV_Total', 'TotStrain'])
 
-    def fEpsNL(Sig):
-        return Sig / (EmNL * (1 + Alpha * Sig))
+    df = pd.DataFrame(rows, columns=columns)
 
-    def fEpsVE(x, i):
-        eps = fEps0(x - (i - 1) * Tp, Rsig[i - 1] * R)
-        for k in range(1, i):
-            eps += fEps(x, (k - 1) * Tp, k * Tp, Rsig[k - 1] * R)
-        return eps
+    df['TotStrain'] = df['TotStrain'].apply(noise_for)
 
-    rows = []
-
-    for i in range(1, Np + 1):
-        for j in range(Nsamp):
-            t += dt
-            valSig = FvalSig + fSig(t, (i - 1) * Tp, Rsig[i - 1] * R)
-            valEpsNL = fEpsNL(valSig)
-            valEpsVE = fEpsVE(t, i)
-            rows.append([
-                t,
-                valSig,
-                valEpsNL,
-                valEpsVE,
-                noise_for(valEpsNL + valEpsVE),
-            ])
-        FvalSig = valSig
-
-    df = pd.DataFrame(rows, columns=['time', 'Stress', 'StrainNonLinEl', 'StrainViscEl', 'TotStrain'])
     return df
 
 
@@ -81,14 +51,18 @@ def generate_all_testing_data():
     EmNL = 0.2       # Nonlinear modulus
     Alpha = 3.0      # Degree of nonlinearity
     Sig0 = 1.0       # Initial maximum stress
-    Tp = 100.0       # Period
+    Tp = [100.0] * Np
+
+    # Kelvin-Voigt elements
+    Em_F = [Em, 1.0, float('inf')]  # Moduli for KV elements
+    Tau_e_F = [Tau_e, 5000.0, 50000.0]  # Relaxation times for KV elements
 
     with open('target.json', 'w') as f:
         json.dump({
             'Np': Np,
             'Nsamp': Nsamp,
-            'Em': Em,
-            'Tau_e': Tau_e,
+            'Em_F': Em_F,
+            'Tau_e_F': Tau_e_F,
             'Tau_s': Tau_s,
             'EmNL': EmNL,
             'Alpha': Alpha,
@@ -98,8 +72,12 @@ def generate_all_testing_data():
         }, f, indent=4)
 
     for label, Rsig in parse_signal_file().items():
-        df = generate_testing_data(Np, Nsamp, Em, Tau_e, Tau_s, EmNL, Alpha, Sig0, Tp, Rsig)
+        df = generate_testing_data(Np, Nsamp, Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Sig0, Tp, Rsig)
         with change_dir(label):
             with open('Rsig.txt', 'w') as f:
                 f.write(str(Rsig))
+
+            with open('Tp.txt', 'w') as f:
+                f.write(str(Tp))
+
             df.to_csv('ZenerModel.dat', sep='\t', index=False)

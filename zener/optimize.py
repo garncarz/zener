@@ -27,15 +27,22 @@ class GASubject:
         df_target = df_target.dropna()
         self.df_target_sorted = df_target.sort_values('time')
 
-        self.dt = self.df_target_sorted.iloc[1].time - self.df_target_sorted.iloc[0].time
-        self.Tp = self.dt * model.Nsamp
+        with open(f'{self.label}/Tp.txt', 'r') as f:
+            self.Tp = json.loads(f.read())
+
+        # Calculate dt as the minimal step between periods
+        self.dt = min(self.Tp) / model.Nsamp
 
         logger.info(f'Testing data loaded: {self.label}')
 
     def compute_all(self, params):
+        columns = ['time', 'Stress', 'StrainNonLinEl', 'StrainViscEl', 'StrainNL_VE_Total']
+        columns.extend([f'StrainKV_{i}' for i in range(1, model.N_F)])
+        columns.extend(['StrainKV_Total', 'TotStrain'])
+
         return pd.DataFrame(
             model.compute_all(params, self.Rsig, self.Tp, self.dt),
-            columns=['time', 'Stress', 'StrainNonLinEl', 'StrainViscEl', 'TotStrain'],
+            columns=columns,
         )
 
     def compute_and_merge(self, params):
@@ -92,15 +99,15 @@ class GAAll:
             parent_selection_type='nsga2',  # good for multi-objective
             fitness_func=self.fitness_func,
             sol_per_pop=20,
-            num_genes=5,
+            num_genes=3 + 2 * model.N_F,
             mutation_percent_genes=30,
             mutation_by_replacement=True,
             gene_space=[
-                {'low': 0.1, 'high': 10.0},  # Em
-                {'low': 10, 'high': 100},    # Tau_e
                 {'low': 10, 'high': 100},    # Tau_s
                 {'low': 0.01, 'high': 3},    # EmNL
                 {'low': 0.1, 'high': 10},    # Alpha
+                *[{'low': 0.1, 'high': 10.0} for _ in range(model.N_F)],  # Em_F
+                *[{'low': 10, 'high': 10000} for _ in range(model.N_F)],  # Tau_e_F
             ],
             save_best_solutions=True,
         )
@@ -147,12 +154,21 @@ class GAAll:
             statsd.gauge('generation.fitness.mean', np.mean(np.mean(ga.last_generation_fitness, axis=1)))
             statsd.gauge('generation', ga.generations_completed)
 
-            Em, Tau_e, Tau_s, EmNL, Alpha = ga.best_solutions[-1]
+            best_sol = ga.best_solutions[-1]
+            Tau_s, EmNL, Alpha = best_sol[:3]
+            Em_F = best_sol[3:3 + model.N_F]
+            Tau_e_F = best_sol[3 + model.N_F:3 + 2 * model.N_F]
+            Em, Tau_e = Em_F[0], Tau_e_F[0]
+
             statsd.gauge('generation.model.Em', Em)
             statsd.gauge('generation.model.Tau_e', Tau_e)
             statsd.gauge('generation.model.Tau_s', Tau_s)
             statsd.gauge('generation.model.EmNL', EmNL)
             statsd.gauge('generation.model.Alpha', Alpha)
+
+            for i in range(1, model.N_F):
+                statsd.gauge(f'generation.model.Em_F_{i}', Em_F[i])
+                statsd.gauge(f'generation.model.Tau_e_F_{i}', Tau_e_F[i])
 
     def run(self):
         self.ga.run()
@@ -161,14 +177,18 @@ class GAAll:
         solution, solution_fitness, _ = self.ga.best_solution()
         logger.info(f'Best solution: {solution}, fitness: {solution_fitness}')
 
-        Em, Tau_e, Tau_s, EmNL, Alpha = solution
+        Tau_s, EmNL, Alpha = solution[:3]
+        Em_F = solution[3:3 + model.N_F]
+        Tau_e_F = solution[3 + model.N_F:3 + 2 * model.N_F]
+        Em, Tau_e = Em_F[0], Tau_e_F[0]
+
         with open('solution.json', 'w') as f:
             json.dump({
-                'Em': Em,
-                'Tau_e': Tau_e,
                 'Tau_s': Tau_s,
                 'EmNL': EmNL,
                 'Alpha': Alpha,
+                'Em_F': Em_F.tolist(),
+                'Tau_e_F': Tau_e_F.tolist(),
                 'generations': self.ga.generations_completed,
                 'fitness': solution_fitness.tolist(),
             }, f, indent=4)
