@@ -3,9 +3,8 @@ import logging
 import random
 
 import numpy as np
-import pandas as pd
 
-from .common import change_dir, parse_signal_file
+from .common import change_dir, parse_signal_file, rows_to_dataframe
 from .settings import settings
 from . import model
 
@@ -25,12 +24,7 @@ def generate_testing_data(Np, Nsamp, Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Sig0, Tp
     params.extend(Tau_e_F)
 
     rows = model.compute_all(params, Rsig, Tp, dt)
-
-    columns = ['time', 'Stress', 'StrainNonLinEl', 'StrainViscEl', 'StrainNL_VE_Total']
-    columns.extend([f'StrainKV_{i}' for i in range(1, model.N_F)])
-    columns.extend(['StrainKV_Total', 'TotStrain'])
-
-    df = pd.DataFrame(rows, columns=columns)
+    df = rows_to_dataframe(rows)
 
     df['TotStrain'] = df['TotStrain'].apply(noise_for)
 

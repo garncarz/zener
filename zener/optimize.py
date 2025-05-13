@@ -6,7 +6,7 @@ import pandas as pd
 import pygad
 
 from . import model, plots, tasks
-from .common import change_dir, parse_signal_file
+from .common import change_dir, parse_signal_file, rows_to_dataframe
 from .settings import settings
 from .statsd import statsd
 
@@ -36,13 +36,8 @@ class GASubject:
         logger.info(f'Testing data loaded: {self.label}')
 
     def compute_all(self, params):
-        columns = ['time', 'Stress', 'StrainNonLinEl', 'StrainViscEl', 'StrainNL_VE_Total']
-        columns.extend([f'StrainKV_{i}' for i in range(1, model.N_F)])
-        columns.extend(['StrainKV_Total', 'TotStrain'])
-
-        return pd.DataFrame(
-            model.compute_all(params, self.Rsig, self.Tp, self.dt),
-            columns=columns,
+        return rows_to_dataframe(
+            model.compute_all(params, self.Rsig, self.Tp, self.dt)
         )
 
     def compute_and_merge(self, params):
