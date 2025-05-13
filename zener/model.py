@@ -30,20 +30,20 @@ def fEps0(x, Rs, Em, Tau_s, Tau_e):
     return fEps(x, t0, x, Rs, Em, Tau_s, Tau_e)
 
 @njit
-def fEpsVE(x, i, Rsig, R, Tp, Em, Tau_s, Tau_e):
-    epsVE = fEps0(x - sum(Tp[:i-1]), Rsig[i - 1] * R, Em, Tau_s, Tau_e)
+def fEpsVE(x, i, Rsig, R, cumulative_Tp, Em, Tau_s, Tau_e):
+    epsVE = fEps0(x - cumulative_Tp[i - 2] if i > 1 else x, Rsig[i - 1] * R, Em, Tau_s, Tau_e)
     for k in range(1, i):
-        t_k_start = sum(Tp[:k - 1])
-        t_k_end = sum(Tp[:k])
+        t_k_start = cumulative_Tp[k - 2] if k > 1 else 0.0
+        t_k_end = cumulative_Tp[k - 1]
         epsVE += fEps(x, t_k_start, t_k_end, Rsig[k - 1] * R, Em, Tau_s, Tau_e)
     return epsVE
 
 @njit
-def fEpsKV(x, i, Rsig, R, Tp, Em, Tau_e, Tau_s):
-    epsKV = fEps0(x - sum(Tp[:i-1]), Rsig[i - 1] * R, Em, Tau_s, Tau_e)
+def fEpsKV(x, i, Rsig, R, cumulative_Tp, Em, Tau_e, Tau_s):
+    epsKV = fEps0(x - cumulative_Tp[i - 2] if i > 1 else x, Rsig[i - 1] * R, Em, Tau_s, Tau_e)
     for k in range(1, i):
-        t_k_start = sum(Tp[:k - 1])
-        t_k_end = sum(Tp[:k])
+        t_k_start = cumulative_Tp[k - 2] if k > 1 else 0.0
+        t_k_end = cumulative_Tp[k - 1]
         epsKV += fEps(x, t_k_start, t_k_end, Rsig[k - 1] * R, Em, Tau_s, Tau_e)
     return epsKV
 
@@ -54,19 +54,26 @@ def _compute_all(params, Rsig, Tp, dt):
     Tau_e_F = params[3 + N_F:3 + 2 * N_F]
     Em, Tau_e = Em_F[0], Tau_e_F[0]
 
+    # Cannot be done automatically:
+    Tp_array = np.zeros(len(Tp))
+    for i in range(len(Tp)):
+        Tp_array[i] = Tp[i]
+
+    cumulative_Tp = np.cumsum(Tp_array)
+
     rows = []
     t = 0.0
     FvalSig = InitialFvalSig
 
     for i in range(1, Np + 1):
-        t_offset = sum(Tp[:i - 1])
+        t_offset = cumulative_Tp[i - 2] if i > 1 else 0.0
 
         for j in range(Nsamp):
             t += dt
 
             valSig = FvalSig + fSig(t, t_offset, Rsig[i - 1] * R)
             valEpsNL = fEpsNL(valSig, EmNL, Alpha)
-            valEpsVE = fEpsVE(t, i, Rsig, R, Tp, Em, Tau_s, Tau_e)
+            valEpsVE = fEpsVE(t, i, Rsig, R, cumulative_Tp, Em, Tau_s, Tau_e)
             valEps_NL_VE = valEpsNL + valEpsVE
 
             # Kelvin chain strain components
@@ -74,7 +81,7 @@ def _compute_all(params, Rsig, Tp, dt):
             valEpsKVchainVE = 0.0
             for k in range(1, N_F):
                 if not np.isinf(Em_F[k]):
-                    val = fEpsKV(t, i, Rsig, R, Tp, Em_F[k], Tau_e_F[k], Tau_s)
+                    val = fEpsKV(t, i, Rsig, R, cumulative_Tp, Em_F[k], Tau_e_F[k], Tau_s)
                     valEpsKV_VE[k] = val
                     valEpsKVchainVE += val
 
