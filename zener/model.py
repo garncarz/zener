@@ -92,4 +92,4 @@ def _compute_all(params, Rsig, Tp, dt):
 
 
 def compute_all(params, Rsig, Tp, dt):
-    return _compute_all(params, List(Rsig), List(Tp), dt)
+    return _compute_all(List(params), List(Rsig), List(Tp), dt)
