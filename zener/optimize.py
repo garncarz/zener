@@ -20,6 +20,7 @@ class GASubject:
         self.label = label
         self.Rsig = Rsig
         self.load_testing_data()
+        self.fitness_columns = ['TotStrain']
 
     def load_testing_data(self):
         df_target = pd.read_csv(f'{self.label}/ZenerModel.dat', sep='\s+')
@@ -52,7 +53,7 @@ class GASubject:
         )
         return merged
 
-    def fitness_func(self, solution):
+    def fitness_func(self, solution, epsilon=1e-3):
         merged = self.compute_and_merge(solution)
 
         match_ratio = len(merged) / len(self.df_target_sorted)
@@ -60,7 +61,10 @@ class GASubject:
             return -1e9
 
         error = 0.0
-        for col in ['TotStrain']:
+        for col in self.fitness_columns:
+            if (merged[f'{col}_model'] < -epsilon).any():
+                return -1e9
+
             diff = merged[f'{col}_model'] - merged[f'{col}_target']
             error += np.sum(diff ** 2)
 
@@ -71,6 +75,25 @@ class GASubject:
             merged = self.compute_and_merge(solution)
             plots.plot_time_series(merged)
             plots.plot_hysteresis(merged)
+
+
+
+class GARsigSubject(GASubject):
+    def __init__(self, label):
+        self.label = label
+        self.load_testing_data()
+        self.fitness_columns = ['Stress']
+
+    def compute_all(self, params):
+        return pd.DataFrame(
+            model.compute_stress(params, self.Tp, self.dt),
+            columns=['time', 'Stress'],
+        )
+
+    def save_plots(self, solution):
+        with change_dir(self.label):
+            merged = self.compute_and_merge(solution)
+            plots.plot_stress(merged)
 
 
 def load_subjects(just_labels=False):
@@ -185,3 +208,61 @@ class GAAll:
         else:
             for subj in self.subjects.values():
                 subj.save_plots(solution)
+
+
+class GARsig:
+    def __init__(self, subj_label):
+        self.subject = GARsigSubject(subj_label)
+
+        self.num_generations = 100
+
+        gene_space = [
+            {'low': 1, 'high': 1},  # Sig0
+        ] + [(-1, 0, 1)] * model.Np  # Rsig
+
+        self.ga = pygad.GA(
+            num_generations=self.num_generations,
+            fitness_func=self.fitness_func,
+            stop_criteria=[f'reach_{settings.stop_fitness}', f'saturate_{settings.stop_saturation}'],
+            num_parents_mating=5,
+            mutation_num_genes=3,
+            mutation_by_replacement=True,
+            sol_per_pop=20,
+            num_genes=len(gene_space),
+            gene_space=gene_space,
+        )
+
+        self.ga.on_generation = self.on_generation
+
+        if settings.parallel > 1:
+            self.ga.parallel_processing=['process', settings.parallel]
+            logger.info(f'PyGAD using {settings.parallel} parallel processes to find Rsig.')
+
+    def fitness_func(self, ga_instance, solution, solution_idx):
+        return self.subject.fitness_func(solution)
+
+    def on_generation(self, ga):
+        logger.info(
+            f'Generation {ga.generations_completed}/{self.num_generations}, '
+            f'fitness: {ga.last_generation_fitness}'
+        )
+
+    def run(self):
+        self.ga.run()
+
+    def save_result(self):
+        solution, solution_fitness, _ = self.ga.best_solution()
+        logger.info(f'Best solution: {solution}, fitness: {solution_fitness}')
+
+        Sig0 = solution[0]
+        Rsig = solution[1:]
+
+        with open(f'{self.subject.label}/rsig.json', 'w') as f:
+            json.dump({
+                'Sig0': Sig0,
+                'Rsig': Rsig.tolist(),
+                'generations': self.ga.generations_completed,
+                'fitness': solution_fitness.tolist(),
+            }, f, indent=4)
+
+        self.subject.save_plots(solution)

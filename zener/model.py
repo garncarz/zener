@@ -67,3 +67,32 @@ def _compute_all(params, Rsig, Tp, dt):
 
 def compute_all(params, Rsig, Tp, dt):
     return _compute_all(params, List(Rsig), Tp, dt)
+
+
+@njit
+def _compute_stress(Rsig, Sig0, Tp, dt):
+    t = 0.0
+    FvalSig = 0.0
+
+    R = Sig0 / Tp
+
+    rows = []
+
+    for i in range(1, Np + 1):
+        for j in range(Nsamp):
+            t += dt
+            valSig = FvalSig + fSig(t, (i - 1) * Tp, Rsig[i - 1] * R)
+            rows.append([
+                t,
+                valSig,
+            ])
+
+        FvalSig = valSig
+
+    return rows
+
+
+def compute_stress(params, Tp, dt):
+    Sig0 = params[0]
+    Rsig = params[1:]
+    return _compute_stress(List(Rsig), Sig0, Tp, dt)
