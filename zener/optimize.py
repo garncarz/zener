@@ -96,16 +96,16 @@ class GAAll:
             sol_per_pop=20,
             num_genes=3 + 2 * model.N_F,
             mutation_percent_genes=30,
+            mutation_by_replacement=True,
+            gene_space = [
+                {'low': 10, 'high': 100},    # Tau_s
+                {'low': 0.01, 'high': 3},    # EmNL
+                {'low': 0.1, 'high': 10},    # Alpha
+                *[{'low': 0.0, 'high': 1e12} for _ in range(model.N_F)],  # Em_F
+                *[{'low': 0.0, 'high': 1e12} for _ in range(model.N_F)],  # Tau_e_F
+            ],
             save_best_solutions=True,
         )
-        self.ga.mutation_by_replacement = False
-        self.ga.gene_space = [
-            {'low': 10, 'high': 100},    # Tau_s
-            {'low': 0.01, 'high': 3},    # EmNL
-            {'low': 0.1, 'high': 10},    # Alpha
-            *[{'low': 0.0, 'high': 1e12} for _ in range(model.N_F)],  # Em_F
-            *[{'low': 0.0, 'high': 1e12} for _ in range(model.N_F)],  # Tau_e_F
-        ]
         self.ga.on_generation = self.on_generation
 
         if settings.parallel > 1:
@@ -128,7 +128,14 @@ class GAAll:
         except Exception:
             return None
 
+    def _is_tau_increasing(self, solution):
+        Tau_e_F = solution[3 + model.N_F:3 + 2 * model.N_F]
+        return all(Tau_e_F[i] <= Tau_e_F[i + 1] for i in range(len(Tau_e_F) - 1))
+
     def fitness_func(self, ga_instance, solution, solution_idx):
+        if not self._is_tau_increasing(solution):
+            return [-1e9] * len(self.subjects)
+
         if settings.use_celery:
             fitness_tasks = tasks.group(
                 tasks.compute_fitness.s(subj_label, solution.tolist())
