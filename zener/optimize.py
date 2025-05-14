@@ -6,7 +6,7 @@ import pandas as pd
 import pygad
 
 from . import model, plots, tasks
-from .common import change_dir, parse_signal_file, rows_to_dataframe
+from .common import change_dir, parse_signal_file, rows_to_dataframe, dataframe_columns
 from .settings import settings
 from .statsd import statsd
 
@@ -22,7 +22,11 @@ class GASubject:
         self.load_testing_data()
 
     def load_testing_data(self):
-        df_target = pd.read_csv(f'{self.label}/ZenerModel.dat', sep='\s+')
+        try:
+            df_target = pd.read_csv(f'{self.label}/ZenerModel.dat', sep='\s+')
+        except FileNotFoundError:
+            df_target = self.load_real_data_txt()
+
         df_target['time'] = pd.to_numeric(df_target['time'], errors='coerce')
         df_target = df_target.dropna()
         self.df_target_sorted = df_target.sort_values('time')
@@ -34,6 +38,33 @@ class GASubject:
         self.dt = min(self.Tp) / model.Nsamp
 
         logger.info(f'Testing data loaded: {self.label}')
+
+    def load_real_data_txt(self):
+        filepath = f'{self.label}/data.txt'
+
+        ignore_lines = 0
+        with open(filepath, 'r') as file:
+            for line in file.readlines():
+                if line.strip() != '':
+                    ignore_lines += 1
+                else:
+                    break
+
+        df = pd.read_csv(
+            filepath,
+            sep='\t',
+            skiprows=ignore_lines,
+            header=[0, 1],  # column names and units
+        )
+
+        df.columns = [col[0].strip() for col in df.columns.values]
+        df.rename(columns={
+            'Time': 'time',
+            'Axial Calculated Axial Stress': 'Stress',
+            'Axial Avg Strain': 'TotStrain',
+        }, inplace=True)
+
+        return df
 
     def compute_all(self, params):
         return rows_to_dataframe(
@@ -52,6 +83,11 @@ class GASubject:
             tolerance=1e-8,
             suffixes=('_model', '_target'),
         )
+
+        for col in dataframe_columns(only_results=True):
+            if (model_col := f'{col}_model') not in merged.columns:
+                merged.rename(columns={col: model_col}, inplace=True)
+
         return merged
 
     def fitness_func(self, solution):

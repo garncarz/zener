@@ -1,18 +1,19 @@
 import matplotlib.pyplot as plt
 
 def plot_time_series(merged):
-    cols = [col.replace('_target', '') for col in merged.columns if '_target' in col]
+    cols = [col.replace('_model', '') for col in merged.columns if '_model' in col]
     fig, axes = plt.subplots(len(cols), 1, figsize=(10, 2.5 * len(cols)), sharex=True)
 
     for i, col in enumerate(cols):
         ax = axes[i]
-        ax.plot(
-            merged['time'].to_numpy(),
-            merged[f'{col}_target'].to_numpy(),
-            label='Target',
-            color='black',
-            linestyle='--',
-        )
+        if f'{col}_target' in merged.columns:
+            ax.plot(
+                merged['time'].to_numpy(),
+                merged[f'{col}_target'].to_numpy(),
+                label='Target',
+                color='black',
+                linestyle='--',
+            )
         ax.plot(
             merged['time'].to_numpy(),
             merged[f'{col}_model'].to_numpy(),
@@ -32,11 +33,13 @@ def plot_time_series(merged):
 def plot_hysteresis(merged):
     fig, ax = plt.subplots(figsize=(8, 6))
 
-    ax.plot(
-        merged['StrainViscEl_target'].to_numpy(),
-        merged['Stress_target'].to_numpy(),
-        label='Target StrainViscEl', color='gray', linestyle=':',
-    )
+    if 'StrainViscEl_target' in merged.columns:
+        ax.plot(
+            merged['StrainViscEl_target'].to_numpy(),
+            merged['Stress_target'].to_numpy(),
+            label='Target StrainViscEl', color='gray', linestyle=':',
+        )
+
     ax.plot(
         merged['StrainViscEl_model'].to_numpy(),
         merged['Stress_model'].to_numpy(),

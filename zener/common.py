@@ -42,9 +42,12 @@ def parse_signal_file(filename=settings.input_signals):
 
     return signals
 
-def rows_to_dataframe(rows):
-    columns = ['time', 'Stress', 'StrainNonLinEl', 'StrainViscEl', 'StrainNL_VE_Total']
+def dataframe_columns(only_results=False):
+    columns = ['time', 'Stress'] if not only_results else []
+    columns.extend(['StrainNonLinEl', 'StrainViscEl', 'StrainNL_VE_Total'])
     columns.extend([f'StrainKV_{i}' for i in range(1, model.N_F)])
     columns.extend(['StrainKV_Total', 'TotStrain'])
+    return columns
 
-    return pd.DataFrame(rows, columns=columns)
+def rows_to_dataframe(rows):
+    return pd.DataFrame(rows, columns=dataframe_columns())
