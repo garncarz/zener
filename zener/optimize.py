@@ -34,10 +34,10 @@ class GASubject:
         with open(f'{self.label}/Tp.txt', 'r') as f:
             self.Tp = json.loads(f.read())
 
-        # Calculate dt as the minimal step between periods
-        self.dt = min(self.Tp) / model.Nsamp
+        self.dt = self.df_target_sorted.iloc[1].time - self.df_target_sorted.iloc[0].time
 
         logger.info(f'Testing data loaded: {self.label}')
+        self.check_testing_data()
 
     def load_real_data_txt(self):
         filepath = f'{self.label}/data.txt'
@@ -109,6 +109,14 @@ class GASubject:
             merged = self.compute_and_merge(solution)
             plots.plot_time_series(merged)
             plots.plot_hysteresis(merged)
+
+    def check_testing_data(self):
+        total_Tp = sum(self.Tp)
+        last_time = self.df_target_sorted['time'].iloc[-1]
+        if not np.isclose(total_Tp, last_time, rtol=0.01):
+            logger.warning(
+                f'Sum of Tp ({total_Tp}) does not match last time in data ({last_time}).'
+            )
 
 
 def load_subjects(just_labels=False):
