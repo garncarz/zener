@@ -65,7 +65,7 @@ def _compute_all(params, Rs, Tp, dt):
     t = 0.0
     FvalSig = InitialFvalSig
 
-    for i in range(1, Np + 1):
+    for i in range(1, len(Tp) + 1):
         t_offset = cumulative_Tp[i - 2] if i > 1 else 0.0
 
         for j in range(int(Tp[i - 1] / dt)):
