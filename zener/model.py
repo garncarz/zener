@@ -68,7 +68,7 @@ def _compute_all(params, Rsig, Tp, dt):
     for i in range(1, Np + 1):
         t_offset = cumulative_Tp[i - 2] if i > 1 else 0.0
 
-        for j in range(Nsamp):
+        for j in range(int(Tp[i - 1] / dt)):
             t += dt
 
             valSig = FvalSig + fSig(t, t_offset, Rsig[i - 1] * R)
