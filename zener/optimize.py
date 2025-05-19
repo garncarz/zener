@@ -33,7 +33,16 @@ class GASubject:
         with open(f'{self.label}/input.json', 'r') as f:
             input_data = json.load(f)
             self.Tp = input_data['Tp']
-            self.Rs = input_data['Rs']
+
+            if 'Rs' in input_data:
+                self.Rs = input_data['Rs']
+            elif 'R' in input_data and 'Rsig' in input_data:
+                R = input_data['R']
+                Rsig = input_data['Rsig']
+                self.Rs = [float(r) * R for r in Rsig]
+                logger.info(f'Calculated Rs from R={R} and Rsig values')
+            else:
+                raise ValueError(f"Required data 'Rs' or both 'R' and 'Rsig' not found in {self.label}/input.json")
 
         self.dt = self.df_target_sorted.iloc[1].time - self.df_target_sorted.iloc[0].time
 
