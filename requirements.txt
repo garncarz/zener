@@ -8,4 +8,5 @@ pandas
 pydantic-settings
 pygad
 pytest
+sentry-sdk
 tqdm

@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     app_name: str = 'Zener'
     host: str = Field(default_factory=lambda: platform.node())
+    environment: Optional[str] = 'dev'
 
     input_signals: str = 'Rsig-Samp.txt'
 
@@ -35,6 +36,8 @@ class Settings(BaseSettings):
     dd_api_key: Optional[str] = None
     dd_site: Optional[str] = 'datadoghq.eu'
 
+    sentry_dsn: Optional[str] = None
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -43,3 +46,11 @@ logging.basicConfig(level=logging.INFO)
 logging.getLogger('kombu.connection').setLevel(logging.ERROR)
 
 settings = Settings()
+
+if settings.sentry_dsn:
+    import sentry_sdk
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.environment,
+    )
+    sentry_sdk.set_tag('host', settings.host)
