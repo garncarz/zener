@@ -3,7 +3,8 @@
 .ipynb_checkpoints/
 celery*/
 control/
-data/
+data
+data*/
 OUTPUT/
 
 *.bak*

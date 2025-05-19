@@ -28,7 +28,7 @@ echo "[WORKER] Starting Celery worker on `hostname -f`"
 
 cd $SRC_DIR
 
-celery -A zener.tasks worker --loglevel=INFO &
+celery -A zener.tasks worker &
 WORKER_PID=$!
 
 if [ "$PBS_NODENUM" == "0" ]; then

@@ -6,7 +6,7 @@ import pandas as pd
 import pygad
 
 from . import model, plots, tasks
-from .common import change_dir, parse_signal_file
+from .common import change_dir, parse_signal_file, rows_to_dataframe, dataframe_columns
 from .settings import settings
 from .statsd import statsd
 
@@ -16,26 +16,69 @@ logger = logging.getLogger(__name__)
 
 class GASubject:
 
-    def __init__(self, label, Rsig):
+    def __init__(self, label):
         self.label = label
-        self.Rsig = Rsig
         self.load_testing_data()
 
     def load_testing_data(self):
-        df_target = pd.read_csv(f'{self.label}/ZenerModel.dat', sep='\s+')
+        try:
+            df_target = pd.read_csv(f'{self.label}/ZenerModel.dat', sep='\s+')
+        except FileNotFoundError:
+            df_target = self.load_real_data_txt()
+
         df_target['time'] = pd.to_numeric(df_target['time'], errors='coerce')
         df_target = df_target.dropna()
         self.df_target_sorted = df_target.sort_values('time')
 
+        with open(f'{self.label}/input.json', 'r') as f:
+            input_data = json.load(f)
+            self.Tp = input_data['Tp']
+
+            if 'Rs' in input_data:
+                self.Rs = input_data['Rs']
+            elif 'R' in input_data and 'Rsig' in input_data:
+                R = input_data['R']
+                Rsig = input_data['Rsig']
+                self.Rs = [float(r) * R for r in Rsig]
+                logger.info(f'Calculated Rs from R={R} and Rsig values')
+            else:
+                raise ValueError(f"Required data 'Rs' or both 'R' and 'Rsig' not found in {self.label}/input.json")
+
         self.dt = self.df_target_sorted.iloc[1].time - self.df_target_sorted.iloc[0].time
-        self.Tp = self.dt * model.Nsamp
 
         logger.info(f'Testing data loaded: {self.label}')
+        self.check_testing_data()
+
+    def load_real_data_txt(self):
+        filepath = f'{self.label}/data.txt'
+
+        ignore_lines = 0
+        with open(filepath, 'r') as file:
+            for line in file.readlines():
+                if line.strip() != '':
+                    ignore_lines += 1
+                else:
+                    break
+
+        df = pd.read_csv(
+            filepath,
+            sep='\t',
+            skiprows=ignore_lines,
+            header=[0, 1],  # column names and units
+        )
+
+        df.columns = [col[0].strip() for col in df.columns.values]
+        df.rename(columns={
+            'Time': 'time',
+            'Axial Calculated Axial Stress': 'Stress',
+            'Axial Avg Strain': 'TotStrain',
+        }, inplace=True)
+
+        return df
 
     def compute_all(self, params):
-        return pd.DataFrame(
-            model.compute_all(params, self.Rsig, self.Tp, self.dt),
-            columns=['time', 'Stress', 'StrainNonLinEl', 'StrainViscEl', 'TotStrain'],
+        return rows_to_dataframe(
+            model.compute_all(params, self.Rs, self.Tp, self.dt)
         )
 
     def compute_and_merge(self, params):
@@ -50,6 +93,11 @@ class GASubject:
             tolerance=1e-8,
             suffixes=('_model', '_target'),
         )
+
+        for col in dataframe_columns(only_results=True):
+            if (model_col := f'{col}_model') not in merged.columns:
+                merged.rename(columns={col: model_col}, inplace=True)
+
         return merged
 
     def fitness_func(self, solution):
@@ -72,11 +120,19 @@ class GASubject:
             plots.plot_time_series(merged)
             plots.plot_hysteresis(merged)
 
+    def check_testing_data(self):
+        total_Tp = sum(self.Tp)
+        last_time = self.df_target_sorted['time'].iloc[-1]
+        if not np.isclose(total_Tp, last_time, rtol=0.01):
+            logger.warning(
+                f'Sum of Tp ({total_Tp}) does not match last time in data ({last_time}).'
+            )
+
 
 def load_subjects(just_labels=False):
     return {
-        label: GASubject(label, Rsig) if not just_labels else 'Use celery'
-        for label, Rsig in parse_signal_file().items()
+        label: GASubject(label) if not just_labels else 'Use celery'
+        for label in parse_signal_file().keys()
     }
 
 
@@ -92,15 +148,15 @@ class GAAll:
             parent_selection_type='nsga2',  # good for multi-objective
             fitness_func=self.fitness_func,
             sol_per_pop=20,
-            num_genes=5,
+            num_genes=3 + 2 * model.N_F,
             mutation_percent_genes=30,
             mutation_by_replacement=True,
-            gene_space=[
-                {'low': 0.1, 'high': 10.0},  # Em
-                {'low': 10, 'high': 100},    # Tau_e
+            gene_space = [
                 {'low': 10, 'high': 100},    # Tau_s
                 {'low': 0.01, 'high': 3},    # EmNL
                 {'low': 0.1, 'high': 10},    # Alpha
+                *[{'low': 0.0, 'high': 1e12} for _ in range(model.N_F)],  # Em_F
+                *[{'low': 0.0, 'high': 1e12} for _ in range(model.N_F)],  # Tau_e_F
             ],
             save_best_solutions=True,
         )
@@ -126,7 +182,14 @@ class GAAll:
         except Exception:
             return None
 
+    def _is_tau_increasing(self, solution):
+        Tau_e_F = solution[3 + model.N_F:3 + 2 * model.N_F]
+        return all(Tau_e_F[i] <= Tau_e_F[i + 1] for i in range(len(Tau_e_F) - 1))
+
     def fitness_func(self, ga_instance, solution, solution_idx):
+        if not self._is_tau_increasing(solution):
+            return [-1e9] * len(self.subjects)
+
         if settings.use_celery:
             fitness_tasks = tasks.group(
                 tasks.compute_fitness.s(subj_label, solution.tolist())
@@ -147,12 +210,21 @@ class GAAll:
             statsd.gauge('generation.fitness.mean', np.mean(np.mean(ga.last_generation_fitness, axis=1)))
             statsd.gauge('generation', ga.generations_completed)
 
-            Em, Tau_e, Tau_s, EmNL, Alpha = ga.best_solutions[-1]
+            best_sol = ga.best_solutions[-1]
+            Tau_s, EmNL, Alpha = best_sol[:3]
+            Em_F = best_sol[3:3 + model.N_F]
+            Tau_e_F = best_sol[3 + model.N_F:3 + 2 * model.N_F]
+            Em, Tau_e = Em_F[0], Tau_e_F[0]
+
             statsd.gauge('generation.model.Em', Em)
             statsd.gauge('generation.model.Tau_e', Tau_e)
             statsd.gauge('generation.model.Tau_s', Tau_s)
             statsd.gauge('generation.model.EmNL', EmNL)
             statsd.gauge('generation.model.Alpha', Alpha)
+
+            for i in range(1, model.N_F):
+                statsd.gauge(f'generation.model.Em_F_{i}', Em_F[i])
+                statsd.gauge(f'generation.model.Tau_e_F_{i}', Tau_e_F[i])
 
     def run(self):
         self.ga.run()
@@ -161,14 +233,18 @@ class GAAll:
         solution, solution_fitness, _ = self.ga.best_solution()
         logger.info(f'Best solution: {solution}, fitness: {solution_fitness}')
 
-        Em, Tau_e, Tau_s, EmNL, Alpha = solution
+        Tau_s, EmNL, Alpha = solution[:3]
+        Em_F = solution[3:3 + model.N_F]
+        Tau_e_F = solution[3 + model.N_F:3 + 2 * model.N_F]
+        Em, Tau_e = Em_F[0], Tau_e_F[0]
+
         with open('solution.json', 'w') as f:
             json.dump({
-                'Em': Em,
-                'Tau_e': Tau_e,
                 'Tau_s': Tau_s,
                 'EmNL': EmNL,
                 'Alpha': Alpha,
+                'Em_F': Em_F.tolist(),
+                'Tau_e_F': Tau_e_F.tolist(),
                 'generations': self.ga.generations_completed,
                 'fitness': solution_fitness.tolist(),
             }, f, indent=4)

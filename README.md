@@ -28,3 +28,5 @@ Then it is runnable as `./fzener`.
 Assuming your project is located under `~/git/zener`, otherwise change it in `zener.sh`.
 
 To schedule a job: `qsub zener.sh` (do not run it directly!)
+
+In case of a stale K8s session, run `kinit`.

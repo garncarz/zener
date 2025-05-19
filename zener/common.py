@@ -1,7 +1,10 @@
 from contextlib import contextmanager
 import os
 
+import pandas as pd
+
 from .settings import settings
+from . import model
 
 @contextmanager
 def change_dir(target_dir):
@@ -38,3 +41,13 @@ def parse_signal_file(filename=settings.input_signals):
                 header = label
 
     return signals
+
+def dataframe_columns(only_results=False):
+    columns = ['time', 'Stress'] if not only_results else []
+    columns.extend(['StrainNonLinEl', 'StrainViscEl', 'StrainNL_VE_Total'])
+    columns.extend([f'StrainKV_{i}' for i in range(1, model.N_F)])
+    columns.extend(['StrainKV_Total', 'TotStrain'])
+    return columns
+
+def rows_to_dataframe(rows):
+    return pd.DataFrame(rows, columns=dataframe_columns())

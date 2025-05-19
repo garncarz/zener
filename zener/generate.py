@@ -3,10 +3,10 @@ import logging
 import random
 
 import numpy as np
-import pandas as pd
 
-from .common import change_dir, parse_signal_file
+from .common import change_dir, parse_signal_file, rows_to_dataframe
 from .settings import settings
+from . import model
 
 
 logger = logging.getLogger(__name__)
@@ -16,63 +16,25 @@ def noise_for(val):
     return random.triangular(val - settings.noise_range, val + settings.noise_range, val)
 
 
-def generate_testing_data(Np, Nsamp, Em, Tau_e, Tau_s, EmNL, Alpha, Sig0, Tp, Rsig):
-    # === Derived Values ===
-    R = Sig0 / Tp
-    dt = Tp / Nsamp
-    t = 0.0
-    FvalSig = 0.0
-    FvalEps = 0.0
-    t0 = 0.0
+def generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Tp, Rs, dt=0.1):
+    params = [Tau_s, EmNL, Alpha]
+    params.extend(Em_F)
+    params.extend(Tau_e_F)
 
-    # === Model functions ===
-    def fSig(x, x1, Rs):
-        return Rs * (x - x1)
+    rows = model.compute_all(params, Rs, Tp, dt)
+    df = rows_to_dataframe(rows)
 
-    def fEps(x, x1, x2, Rs):
-        return (Rs / Em) * ((x2 - x1) + (Tau_s - Tau_e) *
-                            (np.exp(x2 / Tau_e) - np.exp(x1 / Tau_e)) *
-                            np.exp(-x / Tau_e))
+    if settings.noise_range:
+        df['TotStrain'] = df['TotStrain'].apply(noise_for)
 
-    def fEps0(x, Rs):
-        return fEps(x, t0, x, Rs)
-
-    def fEpsNL(Sig):
-        return Sig / (EmNL * (1 + Alpha * Sig))
-
-    def fEpsVE(x, i):
-        eps = fEps0(x - (i - 1) * Tp, Rsig[i - 1] * R)
-        for k in range(1, i):
-            eps += fEps(x, (k - 1) * Tp, k * Tp, Rsig[k - 1] * R)
-        return eps
-
-    rows = []
-
-    for i in range(1, Np + 1):
-        for j in range(Nsamp):
-            t += dt
-            valSig = FvalSig + fSig(t, (i - 1) * Tp, Rsig[i - 1] * R)
-            valEpsNL = fEpsNL(valSig)
-            valEpsVE = fEpsVE(t, i)
-            rows.append([
-                t,
-                valSig,
-                valEpsNL,
-                valEpsVE,
-                noise_for(valEpsNL + valEpsVE),
-            ])
-        FvalSig = valSig
-
-    df = pd.DataFrame(rows, columns=['time', 'Stress', 'StrainNonLinEl', 'StrainViscEl', 'TotStrain'])
     return df
 
 
-def generate_all_testing_data():
+def generate_all_testing_data(Tp=None):
     logger.info(f'Generating testing data using noise = {settings.noise_range}...')
 
     # === Parameters ===
     Np = 21  # Number of periods Tp
-    Nsamp = 1000  # Number of samples per period
 
     # === Default Model Parameters ===
     Em = 1.0         # Modulus
@@ -80,26 +42,35 @@ def generate_all_testing_data():
     Tau_s = 25.0     # Relaxation time for stress
     EmNL = 0.2       # Nonlinear modulus
     Alpha = 3.0      # Degree of nonlinearity
-    Sig0 = 1.0       # Initial maximum stress
-    Tp = 100.0       # Period
+    R = 0.01
+
+    # Kelvin-Voigt elements
+    Em_F = [Em, 1.0, float('inf')]  # Moduli for KV elements
+    Tau_e_F = [Tau_e, 5000.0, 50000.0]  # Relaxation times for KV elements
+
+    if Tp is None:
+        Tp = [100.0] * Np
 
     with open('target.json', 'w') as f:
         json.dump({
             'Np': Np,
-            'Nsamp': Nsamp,
-            'Em': Em,
-            'Tau_e': Tau_e,
+            'Em_F': Em_F,
+            'Tau_e_F': Tau_e_F,
             'Tau_s': Tau_s,
             'EmNL': EmNL,
             'Alpha': Alpha,
-            'Sig0': Sig0,
-            'Tp': Tp,
             'noise': settings.noise_range,
         }, f, indent=4)
 
     for label, Rsig in parse_signal_file().items():
-        df = generate_testing_data(Np, Nsamp, Em, Tau_e, Tau_s, EmNL, Alpha, Sig0, Tp, Rsig)
+        Rs = [float(r) * R for r in Rsig]
+        df = generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Tp, Rs)
+
         with change_dir(label):
-            with open('Rsig.txt', 'w') as f:
-                f.write(str(Rsig))
+            with open('input.json', 'w') as f:
+                json.dump({
+                    'Tp': Tp,
+                    'Rs': Rs,
+                }, f, indent=4)
+
             df.to_csv('ZenerModel.dat', sep='\t', index=False)
