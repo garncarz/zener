@@ -3,13 +3,10 @@ from numba.typed import List
 import numpy as np
 
 
-Np = 21  # Number of periods Tp
-Nsamp = 1000  # Number of samples per period
 N_F = 3 # Number of Kelvin-Voigt elements
 
 InitialFvalSig = 0.0
 t0 = 0.0
-R = 0.01
 
 @njit
 def fSig(x, x1, Rs):
@@ -98,5 +95,5 @@ def _compute_all(params, Rs, Tp, dt):
     return rows
 
 
-def compute_all(params, Rsig, Tp, dt):
-    return _compute_all(List(params), List(r * R for r in Rsig), List(Tp), dt)
+def compute_all(params, Rs, Tp, dt):
+    return _compute_all(List(params), List(Rs), List(Tp), dt)

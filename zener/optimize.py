@@ -16,9 +16,8 @@ logger = logging.getLogger(__name__)
 
 class GASubject:
 
-    def __init__(self, label, Rsig):
+    def __init__(self, label):
         self.label = label
-        self.Rsig = Rsig
         self.load_testing_data()
 
     def load_testing_data(self):
@@ -31,8 +30,10 @@ class GASubject:
         df_target = df_target.dropna()
         self.df_target_sorted = df_target.sort_values('time')
 
-        with open(f'{self.label}/Tp.txt', 'r') as f:
-            self.Tp = json.loads(f.read())
+        with open(f'{self.label}/input.json', 'r') as f:
+            input_data = json.load(f)
+            self.Tp = input_data['Tp']
+            self.Rs = input_data['Rs']
 
         self.dt = self.df_target_sorted.iloc[1].time - self.df_target_sorted.iloc[0].time
 
@@ -68,7 +69,7 @@ class GASubject:
 
     def compute_all(self, params):
         return rows_to_dataframe(
-            model.compute_all(params, self.Rsig, self.Tp, self.dt)
+            model.compute_all(params, self.Rs, self.Tp, self.dt)
         )
 
     def compute_and_merge(self, params):
@@ -121,8 +122,8 @@ class GASubject:
 
 def load_subjects(just_labels=False):
     return {
-        label: GASubject(label, Rsig) if not just_labels else 'Use celery'
-        for label, Rsig in parse_signal_file().items()
+        label: GASubject(label) if not just_labels else 'Use celery'
+        for label in parse_signal_file().keys()
     }
 
 

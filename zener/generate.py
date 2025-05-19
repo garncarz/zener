@@ -16,17 +16,16 @@ def noise_for(val):
     return random.triangular(val - settings.noise_range, val + settings.noise_range, val)
 
 
-def generate_testing_data(Np, Nsamp, Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Sig0, Tp, Rsig):
-    dt = min(Tp) / Nsamp  # Compute dt as the minimal step between periods
-
+def generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Tp, Rs, dt=0.1):
     params = [Tau_s, EmNL, Alpha]
     params.extend(Em_F)
     params.extend(Tau_e_F)
 
-    rows = model.compute_all(params, Rsig, Tp, dt)
+    rows = model.compute_all(params, Rs, Tp, dt)
     df = rows_to_dataframe(rows)
 
-    df['TotStrain'] = df['TotStrain'].apply(noise_for)
+    if settings.noise_range:
+        df['TotStrain'] = df['TotStrain'].apply(noise_for)
 
     return df
 
@@ -36,7 +35,6 @@ def generate_all_testing_data():
 
     # === Parameters ===
     Np = 21  # Number of periods Tp
-    Nsamp = 1000  # Number of samples per period
 
     # === Default Model Parameters ===
     Em = 1.0         # Modulus
@@ -44,8 +42,8 @@ def generate_all_testing_data():
     Tau_s = 25.0     # Relaxation time for stress
     EmNL = 0.2       # Nonlinear modulus
     Alpha = 3.0      # Degree of nonlinearity
-    Sig0 = 1.0       # Initial maximum stress
     Tp = [100.0] * Np
+    R = 0.01
 
     # Kelvin-Voigt elements
     Em_F = [Em, 1.0, float('inf')]  # Moduli for KV elements
@@ -54,24 +52,23 @@ def generate_all_testing_data():
     with open('target.json', 'w') as f:
         json.dump({
             'Np': Np,
-            'Nsamp': Nsamp,
             'Em_F': Em_F,
             'Tau_e_F': Tau_e_F,
             'Tau_s': Tau_s,
             'EmNL': EmNL,
             'Alpha': Alpha,
-            'Sig0': Sig0,
-            'Tp': Tp,
             'noise': settings.noise_range,
         }, f, indent=4)
 
     for label, Rsig in parse_signal_file().items():
-        df = generate_testing_data(Np, Nsamp, Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Sig0, Tp, Rsig)
-        with change_dir(label):
-            with open('Rsig.txt', 'w') as f:
-                f.write(str(Rsig))
+        Rs = [float(r) * R for r in Rsig]
+        df = generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Tp, Rs)
 
-            with open('Tp.txt', 'w') as f:
-                f.write(str(Tp))
+        with change_dir(label):
+            with open('input.json', 'w') as f:
+                json.dump({
+                    'Tp': Tp,
+                    'Rs': Rs,
+                }, f, indent=4)
 
             df.to_csv('ZenerModel.dat', sep='\t', index=False)
