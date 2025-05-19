@@ -30,7 +30,7 @@ def generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Tp, Rs, dt=0.1):
     return df
 
 
-def generate_all_testing_data():
+def generate_all_testing_data(Tp=None):
     logger.info(f'Generating testing data using noise = {settings.noise_range}...')
 
     # === Parameters ===
@@ -42,12 +42,14 @@ def generate_all_testing_data():
     Tau_s = 25.0     # Relaxation time for stress
     EmNL = 0.2       # Nonlinear modulus
     Alpha = 3.0      # Degree of nonlinearity
-    Tp = [100.0] * Np
     R = 0.01
 
     # Kelvin-Voigt elements
     Em_F = [Em, 1.0, float('inf')]  # Moduli for KV elements
     Tau_e_F = [Tau_e, 5000.0, 50000.0]  # Relaxation times for KV elements
+
+    if Tp is None:
+        Tp = [100.0] * Np
 
     with open('target.json', 'w') as f:
         json.dump({
