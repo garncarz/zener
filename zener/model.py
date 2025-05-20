@@ -2,8 +2,7 @@ from numba import njit
 from numba.typed import List
 import numpy as np
 
-
-N_F = 3 # Number of Kelvin-Voigt elements
+from .settings import settings
 
 InitialFvalSig = 0.0
 t0 = 0.0
@@ -45,11 +44,13 @@ def fEpsKV(x, i, Rs, cumulative_Tp, Em, Tau_e, Tau_s):
     return epsKV
 
 @njit
-def _compute_all(params, Rs, Tp, dt):
+def _compute_all(params, Rs, Tp, dt, n_f):
     Tau_s, EmNL, Alpha = params[:3]
-    Em_F = params[3:3 + N_F]
-    Tau_e_F = params[3 + N_F:3 + 2 * N_F]
-    Em, Tau_e = Em_F[0], Tau_e_F[0]
+    Em_F = params[3:3 + n_f]
+    Tau_e_F = params[3 + n_f:3 + 2 * n_f]
+
+    if n_f:
+        Em, Tau_e = Em_F[0], Tau_e_F[0]
 
     # Cannot be done automatically:
     Tp_array = np.zeros(len(Tp))
@@ -69,23 +70,25 @@ def _compute_all(params, Rs, Tp, dt):
             t += dt
 
             valSig = FvalSig + fSig(t, t_offset, Rs[i - 1])
-            valEpsNL = fEpsNL(valSig, EmNL, Alpha)
-            valEpsVE = fEpsVE(t, i, Rs, cumulative_Tp, Em, Tau_s, Tau_e)
-            valEps_NL_VE = valEpsNL + valEpsVE
+            valEps_NL_VE = valEpsNL = fEpsNL(valSig, EmNL, Alpha)
+            valEpsKVchainVE = valEpsVE = 0.0
 
-            # Kelvin chain strain components
-            valEpsKV_VE = List([0.0] * (N_F))
-            valEpsKVchainVE = 0.0
-            for k in range(1, N_F):
-                if not np.isinf(Em_F[k]):
-                    val = fEpsKV(t, i, Rs, cumulative_Tp, Em_F[k], Tau_e_F[k], Tau_s)
-                    valEpsKV_VE[k] = val
-                    valEpsKVchainVE += val
+            if n_f:
+                valEpsVE = fEpsVE(t, i, Rs, cumulative_Tp, Em, Tau_s, Tau_e)
+                valEps_NL_VE += valEpsVE
+
+                # Kelvin chain strain components
+                valEpsKV_VE = List([0.0] * n_f)
+                for k in range(1, n_f):
+                    if not np.isinf(Em_F[k]):
+                        val = fEpsKV(t, i, Rs, cumulative_Tp, Em_F[k], Tau_e_F[k], Tau_s)
+                        valEpsKV_VE[k] = val
+                        valEpsKVchainVE += val
 
             valEpsTot = valEpsNL + valEpsVE + valEpsKVchainVE
 
             row = [t, valSig, valEpsNL, valEpsVE, valEps_NL_VE]
-            row.extend(valEpsKV_VE[1:N_F])
+            row.extend(valEpsKV_VE[1:])
             row.append(valEpsKVchainVE)
             row.append(valEpsTot)
             rows.append(row)
@@ -96,4 +99,4 @@ def _compute_all(params, Rs, Tp, dt):
 
 
 def compute_all(params, Rs, Tp, dt):
-    return _compute_all(List(params), List(Rs), List(Tp), dt)
+    return _compute_all(List(params), List(Rs), List(Tp), dt, settings.n_f)

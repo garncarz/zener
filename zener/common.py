@@ -45,7 +45,7 @@ def parse_signal_file(filename=settings.input_signals):
 def dataframe_columns(only_results=False):
     columns = ['time', 'Stress'] if not only_results else []
     columns.extend(['StrainNonLinEl', 'StrainViscEl', 'StrainNL_VE_Total'])
-    columns.extend([f'StrainKV_{i}' for i in range(1, model.N_F)])
+    columns.extend([f'StrainKV_{i}' for i in range(1, settings.n_f)])
     columns.extend(['StrainKV_Total', 'TotStrain'])
     return columns
 
