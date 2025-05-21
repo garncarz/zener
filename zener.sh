@@ -11,22 +11,27 @@
 # pip install -r requirements.txt
 
 export SRC_DIR=/storage/brno2/home/$(whoami)/git/zener
-export DATADIR=$SRC_DIR
 export VENV_DIR=/storage/brno2/home/$(whoami)/venv
 
 module add python
 source $VENV_DIR/bin/activate
 
-echo "$PBS_JOBID is running on node `hostname -f` in a scratch directory $SCRATCHDIR" >> $DATADIR/jobs_info.txt
+echo "$PBS_JOBID is running on node `hostname -f` in a scratch directory $SCRATCHDIR" >> $SRC_DIR/jobs_info.txt
 
 test -n "$SCRATCHDIR" || { echo >&2 "Variable SCRATCHDIR is not set"; exit 1; }
+
+if [ "$PBS_NODENUM" == "0" ]; then
+    cp -rv $SRC_DIR $SCRATCHDIR/ || { echo >&2 "Error while copying input files (code $?)"; exit 2; }
+else
+    sleep 20
+fi
 
 export celery_broker_dir=$SCRATCHDIR/celery_broker
 export celery_results_dir=$SCRATCHDIR/celery_results
 
 echo "[WORKER] Starting Celery worker on `hostname -f`"
 
-cd $SRC_DIR
+cd $SCRATCHDIR/zener
 
 celery -A zener.tasks worker &
 WORKER_PID=$!
@@ -34,6 +39,8 @@ WORKER_PID=$!
 if [ "$PBS_NODENUM" == "0" ]; then
     # ./zener.py --generate || { echo >&2 "Generating testing data erred (code $?)"; exit 4; }
     use_celery=1 ./zener.py --optimize || { echo >&2 "Optimizing erred (code $?)"; exit 5; }
+
+    cp -rv data/* $SRC_DIR/data/ || { echo >&2 "Result files copying failed (code $?)"; exit 6; }
 
     touch "$SCRATCHDIR/STOP_WORKERS"
     kill $WORKER_PID
