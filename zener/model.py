@@ -99,7 +99,9 @@ def _compute_all(params, Rs, Tp, dt, n_f):
     return rows
 
 
-def compute_all(params, Rs, Tp, dt, n_f=settings.n_f):
+def compute_all(params, Rs, Tp, dt, n_f=None):
+    if n_f is None:
+        n_f = settings.n_f
     return _compute_all(List(params), List(Rs), List(Tp), dt, n_f)
 
 

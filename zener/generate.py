@@ -33,9 +33,6 @@ def generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Tp, Rs, dt=0.1):
 def generate_all_testing_data(Tp=None):
     logger.info(f'Generating testing data using noise = {settings.noise_range}...')
 
-    # === Parameters ===
-    Np = 21  # Number of periods Tp
-
     # === Default Model Parameters ===
     Em = 1.0         # Modulus
     Tau_e = 50.0     # Relaxation time for strain
@@ -48,12 +45,15 @@ def generate_all_testing_data(Tp=None):
     Em_F = [Em, 1.0, float('inf')]  # Moduli for KV elements
     Tau_e_F = [Tau_e, 5000.0, 50000.0]  # Relaxation times for KV elements
 
+    # cut the lists if there's fewer elements
+    Em_F = Em_F[:settings.n_f]
+    Tau_e_F = Tau_e_F[:settings.n_f]
+
     if Tp is None:
-        Tp = [100.0] * Np
+        Tp = [100.0] * 21
 
     with open('target.json', 'w') as f:
         json.dump({
-            'Np': Np,
             'Em_F': Em_F,
             'Tau_e_F': Tau_e_F,
             'Tau_s': Tau_s,
