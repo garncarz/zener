@@ -152,11 +152,11 @@ class GAAll:
             mutation_percent_genes=30,
             mutation_by_replacement=True,
             gene_space = [
-                {'low': 10, 'high': 100},    # Tau_s
-                {'low': 0.01, 'high': 3},    # EmNL
-                {'low': 0.1, 'high': 10},    # Alpha
-                *[{'low': 0.0, 'high': 1e12} for _ in range(settings.n_f)],  # Em_F
-                *[{'low': 0.0, 'high': 1e12} for _ in range(settings.n_f)],  # Tau_e_F
+                {'low': 1.0, 'high': 1e8},    # Tau_s
+                {'low': 1e-4, 'high': 1e6},    # EmNL
+                {'low': 1e-4, 'high': 1.0},    # Alpha
+                *[{'low': 1e-4, 'high': 1e6} for _ in range(settings.n_f)],  # Em_F
+                *[{'low': 1.0, 'high': 1e8} for _ in range(settings.n_f)],  # Tau_e_F
             ],
             save_best_solutions=True,
         )
