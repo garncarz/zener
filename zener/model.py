@@ -88,7 +88,8 @@ def _compute_all(params, Rs, Tp, dt, n_f):
             valEpsTot = valEpsNL + valEpsVE + valEpsKVchainVE
 
             row = [t, valSig, valEpsNL, valEpsVE, valEps_NL_VE]
-            row.extend(valEpsKV_VE[1:])
+            if n_f:
+                row.extend(valEpsKV_VE[1:])
             row.append(valEpsKVchainVE)
             row.append(valEpsTot)
             rows.append(row)
@@ -98,5 +99,10 @@ def _compute_all(params, Rs, Tp, dt, n_f):
     return rows
 
 
-def compute_all(params, Rs, Tp, dt):
-    return _compute_all(List(params), List(Rs), List(Tp), dt, settings.n_f)
+def compute_all(params, Rs, Tp, dt, n_f=settings.n_f):
+    return _compute_all(List(params), List(Rs), List(Tp), dt, n_f)
+
+
+# correct JIT compilation with Numba:
+compute_all([1.2] * (3 + 2*3), [1.0, 2.0], [1.0, 2.0], 0.1, 3)
+# otherwise it doesn't know what to do with n_f = 0
