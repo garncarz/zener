@@ -31,6 +31,11 @@ class BatchStatsD:
         if timestamp is None:
             timestamp = int(time.time())
 
+        tags = tags or []
+
+        if settings.job_id:
+            tags.append(f'job_id:{settings.job_id}')
+
         series = MetricSeries(
             metric=f'{settings.app_name}.{metric}',
             type=MetricIntakeType.GAUGE,

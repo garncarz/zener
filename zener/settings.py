@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     host: str = Field(default_factory=lambda: platform.node())
     environment: Optional[str] = 'dev'
 
+    job_id: Optional[str] = Field(default=None, alias='PBS_JOBID')
+
     input_signals: str = 'Rsig-Samp.txt'
 
     noise_range: float = 0.005

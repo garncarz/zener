@@ -9,20 +9,35 @@ import click
 
 from zener.generate import generate_all_testing_data
 from zener.optimize import GAAll
+from zener.settings import settings
 
 
 def zip_filtered_data():
     source = Path('.')
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    zip_name = f'output_{timestamp}.zip'
+    job_suffix = f'_{settings.job_id}' if settings.job_id else ''
+
+    folder_name = f'output_{timestamp}{job_suffix}'
+    zip_name = f'{folder_name}.zip'
 
     with zipfile.ZipFile(zip_name, 'w', compression=zipfile.ZIP_DEFLATED) as zipf:
         for file in source.rglob('*'):
-            if file.is_file() and file.suffix not in ['.dat', '.pkl', '.zip']:
-                arcname = Path(f'output_{timestamp}') / file.relative_to(source)
+            if should_include_file(file):
+                arcname = Path(folder_name) / file.relative_to(source)
                 zipf.write(file, arcname)
 
     click.echo(f'Compressed into {zip_name}.')
+
+
+def should_include_file(file: Path) -> bool:
+    if not file.is_file():
+        return False
+    if file.suffix in ['.dat', '.pkl', '.zip']:
+        return False
+    if file.name.startswith('celery.') and file.name.endswith('exchange'):
+        return False
+
+    return True
 
 
 @click.command()
