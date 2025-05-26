@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 import shutil
 import tempfile
 
@@ -14,10 +15,15 @@ def pytest_addoption(parser):
 
 @pytest.fixture
 def keep_tmp_dir(request):
+    original_dir = os.getcwd()
     tmp_dir = tempfile.mkdtemp(
         prefix=f'zener_test_{datetime.now().strftime("%Y%m%d_%H%M%S")}_',
     )
+    os.chdir(tmp_dir)
+
     yield tmp_dir
+
+    os.chdir(original_dir)
 
     if not request.config.getoption('--keep-tmp'):
         shutil.rmtree(tmp_dir, ignore_errors=True)

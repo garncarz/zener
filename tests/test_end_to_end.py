@@ -10,8 +10,6 @@ from zener.settings import settings
 
 @pytest.mark.parametrize('n_f', [0, 1, 2, 3])
 def test_generate_and_optimize_variable_tp(keep_tmp_dir, n_f):
-    os.chdir(keep_tmp_dir)
-
     settings.n_f = n_f
 
     Tp = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250]
