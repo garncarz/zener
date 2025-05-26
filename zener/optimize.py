@@ -95,8 +95,9 @@ class GASubject:
             model.compute_all(params, self.Rs, self.Tp, self.dt)
         )
 
-    def compute_and_merge(self, params):
-        df = self.compute_all(transform_params(params))
+    def compute_and_merge(self, params, transform=True):
+        params = transform_params(params) if transform else params
+        df = self.compute_all(params)
         df_sorted = df.sort_values('time')
 
         merged = pd.merge_asof(
@@ -132,7 +133,7 @@ class GASubject:
 
     def save_plots(self, solution):
         with change_dir(self.label):
-            merged = self.compute_and_merge(solution)
+            merged = self.compute_and_merge(solution, transform=False)
             plots.plot_time_series(merged)
             plots.plot_hysteresis(merged)
 
