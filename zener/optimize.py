@@ -98,6 +98,8 @@ class GASubject:
             if (model_col := f'{col}_model') not in merged.columns:
                 merged.rename(columns={col: model_col}, inplace=True)
 
+        merged = merged.dropna()
+
         return merged
 
     def fitness_func(self, solution):
