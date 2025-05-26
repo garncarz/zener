@@ -14,6 +14,20 @@ from .statsd import statsd
 logger = logging.getLogger(__name__)
 
 
+def transform_params(params):
+    """Transform optimization parameters to physical model parameters
+
+    Currently transforms:
+    - Em_F values from exponent x to 10^x
+    """
+    params = params.copy()
+
+    for i in range(3, 3 + settings.n_f):
+        params[i] = 10 ** params[i]
+
+    return params
+
+
 class GASubject:
 
     def __init__(self, label):
@@ -82,7 +96,7 @@ class GASubject:
         )
 
     def compute_and_merge(self, params):
-        df = self.compute_all(self.transform_params(params))
+        df = self.compute_all(transform_params(params))
         df_sorted = df.sort_values('time')
 
         merged = pd.merge_asof(
@@ -129,19 +143,6 @@ class GASubject:
             logger.warning(
                 f'Sum of Tp ({total_Tp}) does not match last time in data ({last_time}).'
             )
-
-    def transform_params(self, params):
-        """Transform optimization parameters to physical model parameters
-
-        Currently transforms:
-        - Em_F values from exponent x to 10^x
-        """
-        params = params.copy()
-
-        for i in range(3, 3 + settings.n_f):
-            params[i] = 10 ** params[i]
-
-        return params
 
 
 def load_subjects(just_labels=False):
@@ -226,6 +227,7 @@ class GAAll:
             statsd.gauge('generation', ga.generations_completed)
 
             best_sol = ga.best_solutions[-1]
+            best_sol = transform_params(best_sol)
             Tau_s, EmNL, Alpha = best_sol[:3]
 
             statsd.gauge('generation.model.Tau_s', Tau_s)
@@ -249,6 +251,7 @@ class GAAll:
 
     def save_result(self):
         solution, solution_fitness, _ = self.ga.best_solution()
+        solution = transform_params(solution)
         logger.info(f'Best solution: {solution}, fitness: {solution_fitness}')
 
         Tau_s, EmNL, Alpha = solution[:3]

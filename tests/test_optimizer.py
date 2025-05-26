@@ -1,16 +1,8 @@
-from unittest.mock import patch
-
 import numpy as np
 import pytest
 
-from zener.optimize import GASubject
+from zener.optimize import transform_params
 from zener.settings import settings
-
-
-@pytest.fixture
-def mock_subject():
-    with patch.object(GASubject, 'load_testing_data'):
-        yield GASubject('nolabel')
 
 
 @pytest.fixture
@@ -46,10 +38,14 @@ def n_f_setter():
     # Test zero exponents
     (1, [10.0, 0.2, 2.5, 0.0, 30.0], [10.0, 0.2, 2.5, 1.0, 30.0]),
 ])
-def test_transform_params(mock_subject, n_f_setter, n_f, test_params, expected):
+def test_transform_params(n_f_setter, n_f, test_params, expected):
     n_f_setter(n_f)
+    original_params = test_params.copy()
 
-    result = mock_subject.transform_params(test_params)
+    result = transform_params(test_params)
 
     assert np.allclose(result, expected)
     assert len(result) == len(expected)
+
+    # Check that original parameters are unchanged
+    assert np.array_equal(test_params, original_params)
