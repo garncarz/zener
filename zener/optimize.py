@@ -82,7 +82,7 @@ class GASubject:
         )
 
     def compute_and_merge(self, params):
-        df = self.compute_all(params)
+        df = self.compute_all(self.transform_params(params))
         df_sorted = df.sort_values('time')
 
         merged = pd.merge_asof(
@@ -130,6 +130,19 @@ class GASubject:
                 f'Sum of Tp ({total_Tp}) does not match last time in data ({last_time}).'
             )
 
+    def transform_params(self, params):
+        """Transform optimization parameters to physical model parameters
+
+        Currently transforms:
+        - Em_F values from exponent x to 10^x
+        """
+        params = params.copy()
+
+        for i in range(3, 3 + settings.n_f):
+            params[i] = 10 ** params[i]
+
+        return params
+
 
 def load_subjects(just_labels=False):
     return {
@@ -157,7 +170,7 @@ class GAAll:
                 {'low': 1.0, 'high': 1e8},    # Tau_s
                 {'low': 1e-4, 'high': 1e6},    # EmNL
                 {'low': 1e-4, 'high': 1.0},    # Alpha
-                *[{'low': 1e-4, 'high': 1e6} for _ in range(settings.n_f)],  # Em_F
+                *[{'low': -1.0, 'high': 12.0} for _ in range(settings.n_f)],  # Em_F - log scale
                 *[{'low': 1.0, 'high': 1e8} for _ in range(settings.n_f)],  # Tau_e_F
             ],
             save_best_solutions=True,
