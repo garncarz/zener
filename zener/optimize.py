@@ -120,9 +120,9 @@ class GASubject:
     def fitness_func(self, solution):
         merged = self.compute_and_merge(solution)
 
-        match_ratio = len(merged) / len(self.df_target_sorted)
-        if match_ratio < 0.95:
-            return -1e9
+        # match_ratio = len(merged) / len(self.df_target_sorted)
+        # if match_ratio < 0.95:
+        #     return -1e9
 
         error = 0.0
         for col in ['TotStrain']:
@@ -205,8 +205,8 @@ class GAAll:
         return all(Tau_e_F[i] <= Tau_e_F[i + 1] for i in range(len(Tau_e_F) - 1))
 
     def fitness_func(self, ga_instance, solution, solution_idx):
-        if not self._is_tau_increasing(solution):
-            return [-1e9] * len(self.subjects)
+        # if not self._is_tau_increasing(solution):
+        #     return [-1e9] * len(self.subjects)
 
         if settings.use_celery:
             fitness_tasks = tasks.group(
