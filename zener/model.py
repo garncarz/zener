@@ -13,7 +13,7 @@ def fSig(x, x1, Rs):
 
 @njit
 def fEpsNL(Sig, EmNL, Alpha, Beta):
-    return (1 / EmNL) * (Sig + Alpha * Sig**Beta)
+    return (1 / EmNL) * (Sig + Alpha * np.sign(Sig) * np.abs(Sig)**Beta)
 
 @njit
 def fEps(x, x1, x2, Rs, Em, Tau_s, Tau_e):
