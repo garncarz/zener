@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #PBS -N zener_optimization_job
-#PBS -l select=3:ncpus=5:mem=8gb:scratch_shared=2gb
+#PBS -l select=1:ncpus=10:mem=16gb:scratch_shared=2gb
 #PBS -l walltime=24:00:00
 # ^^^ select = number of machines, walltime = max time
 
@@ -21,7 +21,15 @@ echo "$PBS_JOBID is running on node `hostname -f` in a scratch directory $SCRATC
 test -n "$SCRATCHDIR" || { echo >&2 "Variable SCRATCHDIR is not set"; exit 1; }
 
 if [ "$PBS_NODENUM" == "0" ]; then
-    cp -rv $SRC_DIR $SCRATCHDIR/ || { echo >&2 "Error while copying input files (code $?)"; exit 2; }
+    rsync -av \
+      --exclude='.git' \
+      --exclude='__pycache__' \
+      --exclude='*.pyc' \
+      --exclude='*.log' \
+      --exclude='zener_optimization_job.e*' \
+      --exclude='zener_optimization_job.o*' \
+      --exclude='*.zip' \
+      $SRC_DIR/ $SCRATCHDIR/zener/ || { echo >&2 "Error while copying input files (code $?)"; exit 2; }
 else
     sleep 20
 fi
@@ -40,7 +48,7 @@ if [ "$PBS_NODENUM" == "0" ]; then
     # ./zener.py --generate || { echo >&2 "Generating testing data erred (code $?)"; exit 4; }
     use_celery=1 ./zener.py --optimize || { echo >&2 "Optimizing erred (code $?)"; exit 5; }
 
-    cp -rv data/* $SRC_DIR/data/ || { echo >&2 "Result files copying failed (code $?)"; exit 6; }
+    rsync -av $SCRATCHDIR/zener/data/ $SRC_DIR/data/ || { echo >&2 "Result files copying failed (code $?)"; exit 6; }
 
     touch "$SCRATCHDIR/STOP_WORKERS"
     kill $WORKER_PID
