@@ -33,7 +33,7 @@ def test_generate_and_optimize_variable_tp(keep_tmp_dir, n_f):
         assert solution is not None
         assert isinstance(fitness, (float, np.floating, np.ndarray))
 
-        assert len(solution) == 3 + 2 * n_f
+        assert len(solution) == 4 + 2 * n_f
 
         merged = subj.compute_and_merge(solution)
 

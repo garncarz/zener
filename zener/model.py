@@ -12,8 +12,8 @@ def fSig(x, x1, Rs):
     return Rs * (x - x1)
 
 @njit
-def fEpsNL(Sig, EmNL, Alpha):
-    return Sig / (EmNL * (1 + Alpha * Sig))
+def fEpsNL(Sig, EmNL, Alpha, Beta):
+    return (1 / EmNL) * (Sig + Alpha * Sig**Beta)
 
 @njit
 def fEps(x, x1, x2, Rs, Em, Tau_s, Tau_e):
@@ -45,9 +45,9 @@ def fEpsKV(x, i, Rs, cumulative_Tp, Em, Tau_e, Tau_s):
 
 @njit
 def _compute_all(params, Rs, Tp, dt, n_f):
-    Tau_s, EmNL, Alpha = params[:3]
-    Em_F = params[3:3 + n_f]
-    Tau_e_F = params[3 + n_f:3 + 2 * n_f]
+    Tau_s, EmNL, Alpha, Beta = params[:4]
+    Em_F = params[4:4 + n_f]
+    Tau_e_F = params[4 + n_f:4 + 2 * n_f]
 
     if n_f:
         Em, Tau_e = Em_F[0], Tau_e_F[0]
@@ -70,7 +70,7 @@ def _compute_all(params, Rs, Tp, dt, n_f):
             t += dt
 
             valSig = FvalSig + fSig(t, t_offset, Rs[i - 1])
-            valEps_NL_VE = valEpsNL = fEpsNL(valSig, EmNL, Alpha)
+            valEps_NL_VE = valEpsNL = fEpsNL(valSig, EmNL, Alpha, Beta)
             valEpsKVchainVE = valEpsVE = 0.0
 
             if n_f:
@@ -106,5 +106,5 @@ def compute_all(params, Rs, Tp, dt, n_f=None):
 
 
 # correct JIT compilation with Numba:
-compute_all([1.2] * (3 + 2*3), [1.0, 2.0], [1.0, 2.0], 0.1, 3)
+compute_all([1.2] * (4 + 2*3), [1.0, 2.0], [1.0, 2.0], 0.1, 3)
 # otherwise it doesn't know what to do with n_f = 0

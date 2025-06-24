@@ -40,7 +40,7 @@ def setup_test_data(keep_tmp_dir, request, n_f_one):
 
     Rs = [0.01, -0.01, 0.01]
     Tp = [10.0, 10.0, 10.0]
-    params = [25.0, 0.2, 3.0, 1.0, 50.0]
+    params = [25.0, 0.2, 3.0, 2.0, 1.0, 50.0]
 
     input_data = {
         'Tp': Tp,
@@ -73,7 +73,7 @@ def test_with_difference(setup_test_data):
     label, params, Rs, Tp, target_df, subject = setup_test_data
 
     # Return data with slightly different parameters
-    model_params = [25.1, 0.21, 3.1, 1.1, 51.0]
+    model_params = [25.1, 0.21, 3.1, 2.1, 1.1, 51.0]
     subject.compute_all = lambda params: create_model_data(model_params, Rs, Tp)
 
     fitness = subject.fitness_func(params)
@@ -123,7 +123,7 @@ def test_n_f_zero(keep_tmp_dir, n_f_zero):
     Rs = [0.01, -0.01, 0.01]
     Tp = [10.0, 10.0, 10.0]
 
-    params = [25.0, 0.2, 3.0]
+    params = [25.0, 0.2, 3.0, 2.0]
 
     input_data = {
         'Tp': Tp,

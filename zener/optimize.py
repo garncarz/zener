@@ -22,7 +22,7 @@ def transform_params(params):
     """
     params = params.copy()
 
-    for i in range(3, 3 + settings.n_f):
+    for i in range(4, 4 + settings.n_f):
         params[i] = 10 ** params[i]
 
     return params
@@ -165,13 +165,14 @@ class GAAll:
             parent_selection_type='nsga2',  # good for multi-objective
             fitness_func=self.fitness_func,
             sol_per_pop=20,
-            num_genes=3 + 2 * settings.n_f,
+            num_genes=4 + 2 * settings.n_f,
             mutation_percent_genes=30,
             mutation_by_replacement=True,
             gene_space = [
                 {'low': 1.0, 'high': 1e8},    # Tau_s
                 {'low': 1e-4, 'high': 1e6},    # EmNL
                 {'low': 1e-4, 'high': 1.0},    # Alpha
+                {'low': 1e-4, 'high': 10.0},    # Beta
                 *[{'low': -1.0, 'high': 12.0} for _ in range(settings.n_f)],  # Em_F - log scale
                 *[{'low': 1.0, 'high': 1e8} for _ in range(settings.n_f)],  # Tau_e_F
             ],
@@ -200,7 +201,7 @@ class GAAll:
             return None
 
     def _is_tau_increasing(self, solution):
-        Tau_e_F = solution[3 + settings.n_f:3 + 2 * settings.n_f]
+        Tau_e_F = solution[4 + settings.n_f:4 + 2 * settings.n_f]
         return all(Tau_e_F[i] <= Tau_e_F[i + 1] for i in range(len(Tau_e_F) - 1))
 
     def fitness_func(self, ga_instance, solution, solution_idx):
@@ -229,15 +230,16 @@ class GAAll:
 
             best_sol = ga.best_solutions[-1]
             best_sol = transform_params(best_sol)
-            Tau_s, EmNL, Alpha = best_sol[:3]
+            Tau_s, EmNL, Alpha, Beta = best_sol[:4]
 
             statsd.gauge('generation.model.Tau_s', Tau_s)
             statsd.gauge('generation.model.EmNL', EmNL)
             statsd.gauge('generation.model.Alpha', Alpha)
+            statsd.gauge('generation.model.Beta', Beta)
 
             if settings.n_f:
-                Em_F = best_sol[3:3 + settings.n_f]
-                Tau_e_F = best_sol[3 + settings.n_f:3 + 2 * settings.n_f]
+                Em_F = best_sol[4:4 + settings.n_f]
+                Tau_e_F = best_sol[4 + settings.n_f:4 + 2 * settings.n_f]
                 Em, Tau_e = Em_F[0], Tau_e_F[0]
 
                 statsd.gauge('generation.model.Em', Em)
@@ -255,15 +257,16 @@ class GAAll:
         solution = transform_params(solution)
         logger.info(f'Best solution: {solution}, fitness: {solution_fitness}')
 
-        Tau_s, EmNL, Alpha = solution[:3]
-        Em_F = solution[3:3 + settings.n_f]
-        Tau_e_F = solution[3 + settings.n_f:3 + 2 * settings.n_f]
+        Tau_s, EmNL, Alpha, Beta = solution[:4]
+        Em_F = solution[4:4 + settings.n_f]
+        Tau_e_F = solution[4 + settings.n_f:4 + 2 * settings.n_f]
 
         with open('solution.json', 'w') as f:
             json.dump({
                 'Tau_s': Tau_s,
                 'EmNL': EmNL,
                 'Alpha': Alpha,
+                'Beta': Beta,
                 'Em_F': Em_F.tolist(),
                 'Tau_e_F': Tau_e_F.tolist(),
                 'generations': self.ga.generations_completed,

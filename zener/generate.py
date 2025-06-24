@@ -16,8 +16,8 @@ def noise_for(val):
     return random.triangular(val - settings.noise_range, val + settings.noise_range, val)
 
 
-def generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Tp, Rs, dt=0.1):
-    params = [Tau_s, EmNL, Alpha]
+def generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Beta, Tp, Rs, dt=0.1):
+    params = [Tau_s, EmNL, Alpha, Beta]
     params.extend(Em_F)
     params.extend(Tau_e_F)
 
@@ -39,6 +39,7 @@ def generate_all_testing_data(Tp=None):
     Tau_s = 25.0     # Relaxation time for stress
     EmNL = 0.2       # Nonlinear modulus
     Alpha = 3.0      # Degree of nonlinearity
+    Beta = 2.0       # New Beta parameter
     R = 0.01
 
     # Kelvin-Voigt elements
@@ -59,12 +60,13 @@ def generate_all_testing_data(Tp=None):
             'Tau_s': Tau_s,
             'EmNL': EmNL,
             'Alpha': Alpha,
+            'Beta': Beta,
             'noise': settings.noise_range,
         }, f, indent=4)
 
     for label, Rsig in parse_signal_file().items():
         Rs = [float(r) * R for r in Rsig]
-        df = generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Tp, Rs)
+        df = generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Beta, Tp, Rs)
 
         with change_dir(label):
             with open('input.json', 'w') as f:

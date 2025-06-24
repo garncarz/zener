@@ -6,6 +6,7 @@ def test_compute_all_non_negative():
     Tau_s = 25.0
     EmNL = 0.2
     Alpha = 3.0
+    Beta = 2.0
     R = 0.01
 
     # Kelvin-Voigt elements
@@ -17,7 +18,7 @@ def test_compute_all_non_negative():
     Rs = [float(r) * R for r in Rsig]
     Tp = [100.0] * len(Rsig)
 
-    params = [Tau_s, EmNL, Alpha]
+    params = [Tau_s, EmNL, Alpha, Beta]
     params.extend(Em_F)
     params.extend(Tau_e_F)
 
