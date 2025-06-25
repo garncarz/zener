@@ -127,7 +127,7 @@ class GASubject:
         error = 0.0
         for col in ['TotStrain']:
             diff = merged[f'{col}_model'] - merged[f'{col}_target']
-            error += np.sum(diff ** 2)
+            error += np.mean(diff ** 2)
 
         return -error
 
