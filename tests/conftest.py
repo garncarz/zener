@@ -2,8 +2,12 @@ from datetime import datetime
 import os
 import shutil
 import tempfile
+import sys
 
 import pytest
+
+# to avoid having to specify PYTHONPATH when running tests
+sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 
 def pytest_addoption(parser):
     parser.addoption(
