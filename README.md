@@ -19,6 +19,8 @@ For example if you want to run optimization with more generations, run `num_gene
 
 Using Jupyter Notebook: `jupyter notebook`
 
+Tests are run automatically by GitHub Actions, but they can also be run locally manually: `pytest`
+
 Compiling the original Fortran code (by doc. Ivan Janeček): `gfortran -o fzener ZenerNLElast-INI-input.f90`.
 Then it is runnable as `./fzener`.
 

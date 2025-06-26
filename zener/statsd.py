@@ -31,6 +31,21 @@ class BatchStatsD:
         if timestamp is None:
             timestamp = int(time.time())
 
+        if value in [float('inf'), float('-inf')]:
+            logger.warning(f'Skipping metric {metric} with infinity value')
+            return
+
+        try:
+            value = float(value)
+        except (ValueError, TypeError):
+            logger.warning(f'Skipping metric {metric} with invalid value: {value}')
+            return
+
+        tags = tags or []
+
+        if settings.job_id:
+            tags.append(f'job_id:{settings.job_id}')
+
         series = MetricSeries(
             metric=f'{settings.app_name}.{metric}',
             type=MetricIntakeType.GAUGE,

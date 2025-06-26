@@ -14,6 +14,20 @@ from .statsd import statsd
 logger = logging.getLogger(__name__)
 
 
+def transform_params(params):
+    """Transform optimization parameters to physical model parameters
+
+    Currently transforms:
+    - Em_F values from exponent x to 10^x
+    """
+    params = params.copy()
+
+    for i in range(4, 4 + settings.n_f):
+        params[i] = 10 ** params[i]
+
+    return params
+
+
 class GASubject:
 
     def __init__(self, label):
@@ -81,7 +95,8 @@ class GASubject:
             model.compute_all(params, self.Rs, self.Tp, self.dt)
         )
 
-    def compute_and_merge(self, params):
+    def compute_and_merge(self, params, transform=True):
+        params = transform_params(params) if transform else params
         df = self.compute_all(params)
         df_sorted = df.sort_values('time')
 
@@ -98,25 +113,37 @@ class GASubject:
             if (model_col := f'{col}_model') not in merged.columns:
                 merged.rename(columns={col: model_col}, inplace=True)
 
+        merged = merged.dropna()
+
         return merged
 
     def fitness_func(self, solution):
         merged = self.compute_and_merge(solution)
 
-        match_ratio = len(merged) / len(self.df_target_sorted)
-        if match_ratio < 0.95:
-            return -1e9
+        # match_ratio = len(merged) / len(self.df_target_sorted)
+        # if match_ratio < 0.95:
+        #     return -1e9
 
         error = 0.0
         for col in ['TotStrain']:
             diff = merged[f'{col}_model'] - merged[f'{col}_target']
-            error += np.sum(diff ** 2)
+            error += np.mean(diff ** 2)
 
         return -error
 
     def save_plots(self, solution):
+        # Accepts either a dict (from solution.json) or a list
+        if isinstance(solution, dict):
+            Tau_s = solution['Tau_s']
+            EmNL = solution['EmNL']
+            Alpha = solution['Alpha']
+            Beta = solution['Beta']
+            Em_F = solution['Em_F']
+            Tau_e_F = solution['Tau_e_F']
+            solution = [Tau_s, EmNL, Alpha, Beta] + Em_F + Tau_e_F
+
         with change_dir(self.label):
-            merged = self.compute_and_merge(solution)
+            merged = self.compute_and_merge(solution, transform=False)
             plots.plot_time_series(merged)
             plots.plot_hysteresis(merged)
 
@@ -148,15 +175,16 @@ class GAAll:
             parent_selection_type='nsga2',  # good for multi-objective
             fitness_func=self.fitness_func,
             sol_per_pop=20,
-            num_genes=3 + 2 * model.N_F,
+            num_genes=4 + 2 * settings.n_f,
             mutation_percent_genes=30,
             mutation_by_replacement=True,
             gene_space = [
-                {'low': 10, 'high': 100},    # Tau_s
-                {'low': 0.01, 'high': 3},    # EmNL
-                {'low': 0.1, 'high': 10},    # Alpha
-                *[{'low': 0.0, 'high': 1e12} for _ in range(model.N_F)],  # Em_F
-                *[{'low': 0.0, 'high': 1e12} for _ in range(model.N_F)],  # Tau_e_F
+                {'low': 0.1, 'high': 1e8},    # Tau_s
+                {'low': 1e-4, 'high': 1e6},    # EmNL
+                {'low': 1e-4, 'high': 200},    # Alpha
+                {'low': 1e-4, 'high': 10.0},    # Beta
+                *[{'low': -1.0, 'high': 12.0} for _ in range(settings.n_f)],  # Em_F - log scale
+                *[{'low': 0.1, 'high': 1e8} for _ in range(settings.n_f)],  # Tau_e_F
             ],
             save_best_solutions=True,
         )
@@ -183,12 +211,12 @@ class GAAll:
             return None
 
     def _is_tau_increasing(self, solution):
-        Tau_e_F = solution[3 + model.N_F:3 + 2 * model.N_F]
+        Tau_e_F = solution[4 + settings.n_f:4 + 2 * settings.n_f]
         return all(Tau_e_F[i] <= Tau_e_F[i + 1] for i in range(len(Tau_e_F) - 1))
 
     def fitness_func(self, ga_instance, solution, solution_idx):
-        if not self._is_tau_increasing(solution):
-            return [-1e9] * len(self.subjects)
+        # if not self._is_tau_increasing(solution):
+        #     return [-1e9] * len(self.subjects)
 
         if settings.use_celery:
             fitness_tasks = tasks.group(
@@ -211,38 +239,44 @@ class GAAll:
             statsd.gauge('generation', ga.generations_completed)
 
             best_sol = ga.best_solutions[-1]
-            Tau_s, EmNL, Alpha = best_sol[:3]
-            Em_F = best_sol[3:3 + model.N_F]
-            Tau_e_F = best_sol[3 + model.N_F:3 + 2 * model.N_F]
-            Em, Tau_e = Em_F[0], Tau_e_F[0]
+            best_sol = transform_params(best_sol)
+            Tau_s, EmNL, Alpha, Beta = best_sol[:4]
 
-            statsd.gauge('generation.model.Em', Em)
-            statsd.gauge('generation.model.Tau_e', Tau_e)
             statsd.gauge('generation.model.Tau_s', Tau_s)
             statsd.gauge('generation.model.EmNL', EmNL)
             statsd.gauge('generation.model.Alpha', Alpha)
+            statsd.gauge('generation.model.Beta', Beta)
 
-            for i in range(1, model.N_F):
-                statsd.gauge(f'generation.model.Em_F_{i}', Em_F[i])
-                statsd.gauge(f'generation.model.Tau_e_F_{i}', Tau_e_F[i])
+            if settings.n_f:
+                Em_F = best_sol[4:4 + settings.n_f]
+                Tau_e_F = best_sol[4 + settings.n_f:4 + 2 * settings.n_f]
+                Em, Tau_e = Em_F[0], Tau_e_F[0]
+
+                statsd.gauge('generation.model.Em', Em)
+                statsd.gauge('generation.model.Tau_e', Tau_e)
+
+                for i in range(1, settings.n_f):
+                    statsd.gauge(f'generation.model.Em_F_{i}', Em_F[i])
+                    statsd.gauge(f'generation.model.Tau_e_F_{i}', Tau_e_F[i])
 
     def run(self):
         self.ga.run()
 
     def save_result(self):
         solution, solution_fitness, _ = self.ga.best_solution()
+        solution = transform_params(solution)
         logger.info(f'Best solution: {solution}, fitness: {solution_fitness}')
 
-        Tau_s, EmNL, Alpha = solution[:3]
-        Em_F = solution[3:3 + model.N_F]
-        Tau_e_F = solution[3 + model.N_F:3 + 2 * model.N_F]
-        Em, Tau_e = Em_F[0], Tau_e_F[0]
+        Tau_s, EmNL, Alpha, Beta = solution[:4]
+        Em_F = solution[4:4 + settings.n_f]
+        Tau_e_F = solution[4 + settings.n_f:4 + 2 * settings.n_f]
 
         with open('solution.json', 'w') as f:
             json.dump({
                 'Tau_s': Tau_s,
                 'EmNL': EmNL,
                 'Alpha': Alpha,
+                'Beta': Beta,
                 'Em_F': Em_F.tolist(),
                 'Tau_e_F': Tau_e_F.tolist(),
                 'generations': self.ga.generations_completed,
@@ -252,9 +286,17 @@ class GAAll:
         plt_fitness = self.ga.plot_fitness()
         plt_fitness.savefig('fitness.png')
 
+        self.save_plots(solution)
+
+    def save_plots(self, solution=None):
+        if solution is None:
+            with open('solution.json', 'r') as f:
+                solution = json.load(f)
+        if isinstance(solution, np.ndarray):
+            solution = solution.tolist()
         if settings.use_celery:
             plots_tasks = tasks.group(
-                tasks.save_plots.s(subj_label, solution.tolist())
+                tasks.save_plots.s(subj_label, solution)
                 for subj_label in self.subjects.keys()
             )
             plots_tasks.apply_async().join()

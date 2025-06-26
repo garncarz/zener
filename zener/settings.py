@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     host: str = Field(default_factory=lambda: platform.node())
     environment: Optional[str] = 'dev'
 
+    job_id: Optional[str] = Field(default=None, alias='PBS_JOBID')
+
     input_signals: str = 'Rsig-Samp.txt'
 
     noise_range: float = 0.005
@@ -37,6 +39,9 @@ class Settings(BaseSettings):
     dd_site: Optional[str] = 'datadoghq.eu'
 
     sentry_dsn: Optional[str] = None
+
+    # Model complexity setting
+    n_f: int = 19  # Number of Kelvin-Voigt elements
 
 
 logging.basicConfig(level=logging.INFO)

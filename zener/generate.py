@@ -16,8 +16,8 @@ def noise_for(val):
     return random.triangular(val - settings.noise_range, val + settings.noise_range, val)
 
 
-def generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Tp, Rs, dt=0.1):
-    params = [Tau_s, EmNL, Alpha]
+def generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Beta, Tp, Rs, dt=0.1):
+    params = [Tau_s, EmNL, Alpha, Beta]
     params.extend(Em_F)
     params.extend(Tau_e_F)
 
@@ -33,38 +33,40 @@ def generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Tp, Rs, dt=0.1):
 def generate_all_testing_data(Tp=None):
     logger.info(f'Generating testing data using noise = {settings.noise_range}...')
 
-    # === Parameters ===
-    Np = 21  # Number of periods Tp
-
     # === Default Model Parameters ===
     Em = 1.0         # Modulus
     Tau_e = 50.0     # Relaxation time for strain
     Tau_s = 25.0     # Relaxation time for stress
     EmNL = 0.2       # Nonlinear modulus
     Alpha = 3.0      # Degree of nonlinearity
+    Beta = 2.0       # New Beta parameter
     R = 0.01
 
     # Kelvin-Voigt elements
     Em_F = [Em, 1.0, float('inf')]  # Moduli for KV elements
     Tau_e_F = [Tau_e, 5000.0, 50000.0]  # Relaxation times for KV elements
 
+    # cut the lists if there's fewer elements
+    Em_F = Em_F[:settings.n_f]
+    Tau_e_F = Tau_e_F[:settings.n_f]
+
     if Tp is None:
-        Tp = [100.0] * Np
+        Tp = [100.0] * 21
 
     with open('target.json', 'w') as f:
         json.dump({
-            'Np': Np,
             'Em_F': Em_F,
             'Tau_e_F': Tau_e_F,
             'Tau_s': Tau_s,
             'EmNL': EmNL,
             'Alpha': Alpha,
+            'Beta': Beta,
             'noise': settings.noise_range,
         }, f, indent=4)
 
     for label, Rsig in parse_signal_file().items():
         Rs = [float(r) * R for r in Rsig]
-        df = generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Tp, Rs)
+        df = generate_testing_data(Em_F, Tau_e_F, Tau_s, EmNL, Alpha, Beta, Tp, Rs)
 
         with change_dir(label):
             with open('input.json', 'w') as f:
