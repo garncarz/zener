@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     sentry_dsn: Optional[str] = None
 
     # Model complexity setting
-    n_f: int = 3  # Number of Kelvin-Voigt elements
+    n_f: int = 19  # Number of Kelvin-Voigt elements
 
 
 logging.basicConfig(level=logging.INFO)
