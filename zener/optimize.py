@@ -132,6 +132,16 @@ class GASubject:
         return -error
 
     def save_plots(self, solution):
+        # Accepts either a dict (from solution.json) or a list
+        if isinstance(solution, dict):
+            Tau_s = solution['Tau_s']
+            EmNL = solution['EmNL']
+            Alpha = solution['Alpha']
+            Beta = solution['Beta']
+            Em_F = solution['Em_F']
+            Tau_e_F = solution['Tau_e_F']
+            solution = [Tau_s, EmNL, Alpha, Beta] + Em_F + Tau_e_F
+
         with change_dir(self.label):
             merged = self.compute_and_merge(solution, transform=False)
             plots.plot_time_series(merged)
@@ -276,9 +286,17 @@ class GAAll:
         plt_fitness = self.ga.plot_fitness()
         plt_fitness.savefig('fitness.png')
 
+        self.save_plots(solution)
+
+    def save_plots(self, solution=None):
+        if solution is None:
+            with open('solution.json', 'r') as f:
+                solution = json.load(f)
+        if isinstance(solution, np.ndarray):
+            solution = solution.tolist()
         if settings.use_celery:
             plots_tasks = tasks.group(
-                tasks.save_plots.s(subj_label, solution.tolist())
+                tasks.save_plots.s(subj_label, solution)
                 for subj_label in self.subjects.keys()
             )
             plots_tasks.apply_async().join()
