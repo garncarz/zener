@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
 from datetime import datetime
+import json
 import os
 from pathlib import Path
 import zipfile
 
 import click
 
+from zener.common import parse_parameters_from_str_table
 from zener.generate import generate_all_testing_data
 from zener.optimize import GAAll
 from zener.settings import settings
@@ -40,17 +42,31 @@ def should_include_file(file: Path) -> bool:
     return True
 
 
+def do_load_params():
+    """Parse parameters from data/parameters.txt and save them as solution.json."""
+    with open('parameters.txt', 'r') as f:
+        data = f.read()
+    params = parse_parameters_from_str_table(data)
+    with open('solution.json', 'w') as f:
+        json.dump(params, f, indent=4)
+    click.echo('Parsed parameters.txt and saved as solution.json.')
+
+
 @click.command()
 @click.option('--generate', is_flag=True, help='Generate testing data.')
 @click.option('--optimize', is_flag=True, help='Run optimization.')
 @click.option('--result', is_flag=True, help='Only save the result from the last generation.')
+@click.option('--load-params', is_flag=True, help='Parse parameters from data/parameters.txt and save them as solution.json.')
 @click.pass_context
-def main(ctx, generate, optimize, result):
-    if not any([generate, optimize, result]):
+def main(ctx, generate, optimize, result, load_params):
+    if not any([generate, optimize, result, load_params]):
         click.echo(ctx.get_help())
         ctx.exit()
 
     os.chdir('data')
+
+    if load_params:
+        do_load_params()
 
     if generate:
         generate_all_testing_data()
