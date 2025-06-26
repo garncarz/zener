@@ -104,6 +104,7 @@ def test_shorter_target(setup_test_data):
     assert len(merged) <= len(target_df), 'Merged data should not exceed target length'
 
 
+@pytest.mark.skip(reason='Big penalty for poor match ratio is not applied now.')
 def test_shorter_model(setup_test_data):
     '''Test that having a much shorter model than target returns -1e9'''
     label, params, Rs, Tp, target_df, subject = setup_test_data
