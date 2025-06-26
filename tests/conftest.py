@@ -33,3 +33,16 @@ def keep_tmp_dir(request):
         shutil.rmtree(tmp_dir, ignore_errors=True)
     else:
         print(f'\nKept temporary directory: {tmp_dir}')
+
+
+@pytest.fixture
+def n_f_setter():
+    from zener.settings import settings
+    original_n_f = settings.n_f
+
+    def _set_n_f(value):
+        settings.n_f = value
+
+    yield _set_n_f
+
+    settings.n_f = original_n_f

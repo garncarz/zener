@@ -2,19 +2,6 @@ import numpy as np
 import pytest
 
 from zener.optimize import transform_params
-from zener.settings import settings
-
-
-@pytest.fixture
-def n_f_setter():
-    original_n_f = settings.n_f
-
-    def _set_n_f(value):
-        settings.n_f = value
-
-    yield _set_n_f
-
-    settings.n_f = original_n_f
 
 
 @pytest.mark.parametrize('n_f, test_params, expected', [

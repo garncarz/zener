@@ -31,7 +31,13 @@ def fEpsVE(x, i, Rs, cumulative_Tp, Em, Tau_s, Tau_e):
     for k in range(1, i):
         t_k_start = cumulative_Tp[k - 2] if k > 1 else 0.0
         t_k_end = cumulative_Tp[k - 1]
-        epsVE += fEps(x, t_k_start, t_k_end, Rs[k - 1], Em, Tau_s, Tau_e)
+        term = fEps(x, t_k_start, t_k_end, Rs[k - 1], Em, Tau_s, Tau_e)
+
+        # Only add terms that are significant compared to current value,
+        # otherwise Numba likes to create NaN
+        if abs(term) > 1e-10 * max(1.0, abs(epsVE)):
+            epsVE += term
+
     return epsVE
 
 @njit
@@ -40,7 +46,13 @@ def fEpsKV(x, i, Rs, cumulative_Tp, Em, Tau_e, Tau_s):
     for k in range(1, i):
         t_k_start = cumulative_Tp[k - 2] if k > 1 else 0.0
         t_k_end = cumulative_Tp[k - 1]
-        epsKV += fEps(x, t_k_start, t_k_end, Rs[k - 1], Em, Tau_s, Tau_e)
+        term = fEps(x, t_k_start, t_k_end, Rs[k - 1], Em, Tau_s, Tau_e)
+
+        # Only add terms that are significant compared to current value,
+        # otherwise Numba likes to create NaN
+        if abs(term) > 1e-10 * max(1.0, abs(epsKV)):
+            epsKV += term
+
     return epsKV
 
 @njit
