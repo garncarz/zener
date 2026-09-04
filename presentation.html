@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reading Rock in Time | Zener model</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/black.css">
+  <style>
+    :root { --ink: #102a2e; --muted: #557174; --paper: #f5f1e8; --cream: #fffaf0; --teal: #007f78; --coral: #e76f51; --gold: #e9b44c; --line: #c8d4cf; }
+    .reveal { color: var(--ink); font-family: Georgia, 'Times New Roman', serif; background: var(--paper); }
+    .reveal .slides { text-align: left; }
+    .reveal .slides section { height: 100%; box-sizing: border-box; padding: 5vh 7vw; }
+    .reveal h1, .reveal h2, .reveal h3 { color: var(--ink); font-family: 'Trebuchet MS', sans-serif; letter-spacing: 0; text-transform: none; }
+    .reveal h1 { font-size: 2.25em; line-height: 1.05; max-width: 9em; }
+    .reveal h2 { font-size: 1.55em; margin: 0 0 .6em; }
+    .reveal h3 { font-size: .7em; color: var(--teal); margin: 0 0 .45em; }
+    .reveal p, .reveal li { font-size: .72em; line-height: 1.3; }
+    .reveal strong { color: var(--coral); }
+    .kicker { color: var(--coral); font: 700 .42em 'Trebuchet MS', sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+    .sub { color: var(--muted); max-width: 35em; }
+    .stamp { position: absolute; right: 7vw; top: 7vh; font: 700 .42em 'Trebuchet MS', sans-serif; color: var(--teal); }
+    .rule { width: 4em; height: 5px; background: var(--gold); margin: 1em 0; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2em; align-items: center; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1em; }
+    .panel { background: var(--cream); border: 1px solid var(--line); border-left: 6px solid var(--teal); padding: 1em 1.15em; }
+    .panel.coral { border-left-color: var(--coral); }
+    .panel.gold { border-left-color: var(--gold); }
+    .panel p { margin: .35em 0; }
+    .equation { font-size: 1.18em; color: var(--ink); background: #e6eeea; padding: .7em .85em; border-radius: 3px; text-align: center; }
+    .tiny { font-size: .5em !important; color: var(--muted); }
+    .big-number { font: 700 2.4em 'Trebuchet MS', sans-serif; color: var(--coral); }
+    .tag { display: inline-block; padding: .3em .55em; margin: .18em; color: var(--cream); background: var(--teal); font: 700 .46em 'Trebuchet MS', sans-serif; }
+    .tag.coral { background: var(--coral); }
+    .tag.gold { background: #b67a00; }
+    .flow { display: flex; align-items: center; justify-content: space-between; gap: .45em; margin-top: 1em; }
+    .flow .node { flex: 1; min-height: 4.1em; display: grid; place-items: center; text-align: center; background: var(--cream); border: 2px solid var(--teal); padding: .5em; font: 700 .55em 'Trebuchet MS', sans-serif; }
+    .flow .arrow { color: var(--coral); font: 700 .85em sans-serif; }
+    .wave { height: 190px; position: relative; border-bottom: 3px solid var(--ink); border-left: 3px solid var(--ink); background: repeating-linear-gradient(0deg, transparent 0 38px, rgba(0,127,120,.13) 39px 40px); }
+    .wave:after { content: ''; position: absolute; inset: 28px 3% 20px 3%; background: linear-gradient(120deg, transparent 0 8%, var(--coral) 8% 9%, transparent 9% 20%, var(--coral) 20% 21%, transparent 21% 34%, var(--coral) 34% 35%, transparent 35% 48%, var(--coral) 48% 49%, transparent 49% 62%, var(--coral) 62% 63%, transparent 63% 77%, var(--coral) 77% 78%, transparent 78%); clip-path: polygon(0 80%, 8% 15%, 16% 58%, 24% 8%, 32% 69%, 40% 22%, 48% 79%, 56% 15%, 64% 61%, 72% 4%, 80% 72%, 88% 18%, 100% 52%, 100% 60%, 88% 27%, 80% 82%, 72% 14%, 64% 71%, 56% 25%, 48% 89%, 40% 32%, 32% 79%, 24% 18%, 16% 68%, 8% 25%, 0 90%); }
+    table { width: 100%; border-collapse: collapse; font-size: .52em; background: var(--cream); }
+    th, td { border-bottom: 1px solid var(--line); padding: .65em; vertical-align: top; }
+    th { font-family: 'Trebuchet MS', sans-serif; color: var(--teal); text-align: left; }
+    code { color: var(--teal); font-size: .82em; }
+    .reveal .progress { color: var(--coral); }
+    .reveal .controls { color: var(--teal); }
+    @media (max-width: 700px) { .grid2, .grid3 { grid-template-columns: 1fr; gap: .7em; } .flow { flex-direction: column; } .flow .arrow { transform: rotate(90deg); } .reveal h1 { font-size: 1.8em; } .reveal p, .reveal li { font-size: .63em; } table { font-size: .43em; } }
+  </style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+  <section data-background-color="#f5f1e8">
+    <span class="stamp">ZENER / 16 MINUTES</span>
+    <div class="kicker">Computational rheology for rock</div><h1>Reading rock in time</h1><div class="rule"></div>
+    <p class="sub">How a nonlinear Zener model turns stress history into strain, and how the repository searches for the hidden parameters.</p>
+    <aside class="notes">0:00-1:00. Open with the practical question: when a rock is loaded, how much deformation is immediate, delayed, or history-dependent? This project answers it with a forward model and an inverse search.</aside>
+  </section>
+
+  <section><div class="kicker">The question</div><h2>One stress curve. Several clocks.</h2>
+    <div class="grid2"><div><p>Two samples can see the same stress and still accumulate different strain because their internal relaxation times differ.</p><p><strong>Goal:</strong> explain the observed strain as the sum of mechanisms that live on different time scales.</p></div><div class="panel coral"><div class="big-number">σ(t) → ε(t)</div><p>Stress history is the input. Total strain is the observable.</p></div></div>
+    <aside class="notes">1:00-2:00. Establish that this is not just curve fitting. The time structure is the scientific content: fast response, slow response, and nonlinearity all leave different signatures.</aside>
+  </section>
+
+  <section><div class="kicker">A useful mental model</div><h2>Three contributions make one response</h2>
+    <div class="grid3"><div class="panel"><h3>Nonlinear elastic</h3><p>Instantaneous response. It bends with stress magnitude.</p><span class="tag">EmNL</span><span class="tag coral">Alpha</span><span class="tag gold">Beta</span></div><div class="panel coral"><h3>Viscoelastic branch</h3><p>One delayed mechanism with a stress and strain clock.</p><span class="tag coral">Tau_s</span><span class="tag">Tau_e</span></div><div class="panel gold"><h3>Kelvin chain</h3><p>Many delayed elements approximate a broad relaxation spectrum.</p><span class="tag gold">Em_F[i]</span><span class="tag">Tau_e_F[i]</span></div></div>
+    <div class="equation">ε<sub>total</sub> = ε<sub>NL</sub> + ε<sub>VE</sub> + Σ ε<sub>KV,i</sub></div>
+    <aside class="notes">2:00-3:15. This is the central picture. The implementation names these values explicitly, which makes it possible to inspect each contribution rather than treating the model as a black box.</aside>
+  </section>
+
+  <section><div class="kicker">The nonlinear core</div><h2>Instantaneous strain is not quite Hooke's law</h2>
+    <div class="grid2"><div class="equation">ε<sub>NL</sub>(σ) = <span style="white-space:nowrap">1 / EmNL</span> · [ σ + Alpha · sign(σ) · |σ|<sup>Beta</sup> ]</div><div><p><code>fEpsNL</code> keeps the sign of stress while allowing a power-law departure from linearity.</p><p class="sub">Small β and large β do different things to the curve; Alpha controls how visible the nonlinear term becomes.</p></div></div>
+    <aside class="notes">3:15-4:30. Point at sign and absolute value: the nonlinear correction is symmetric in magnitude while preserving tension/compression direction. EmNL is a scale, Alpha and Beta shape the departure.</aside>
+  </section>
+
+  <section><div class="kicker">Time dependence</div><h2>Relaxation is memory, implemented as history</h2>
+    <div class="grid2"><div><p>Each stress segment has a rate <code>Rs</code> and duration <code>Tp</code>. The model carries the endpoint stress into the next segment.</p><p>The exponential terms in <code>fEps</code> encode how earlier loading decays into the present.</p></div><div class="wave"><div style="position:absolute;bottom:-2em;left:0;font: .45em sans-serif">time →</div><div style="position:absolute;top:.2em;left:1em;font: .45em sans-serif;color:#e76f51">stress segments</div></div></div>
+    <aside class="notes">4:30-5:45. Emphasize cumulative_Tp and t_offset in compute_all. This is why segment order matters. The present strain is not a function of only the present stress.</aside>
+  </section>
+
+  <section><div class="kicker">The Kelvin chain</div><h2>Many simple clocks approximate one complicated material</h2>
+    <div class="flow"><div class="node">same stress history</div><div class="arrow">→</div><div class="node">fast element<br><strong>τ ≈ 1</strong></div><div class="arrow">+</div><div class="node">medium elements<br><strong>τ ≈ 10–1,000</strong></div><div class="arrow">+</div><div class="node">slow tail<br><strong>τ ≈ 50,000</strong></div></div>
+    <p class="sub" style="margin-top:1.4em">The default setup uses <strong>19 elements</strong>. Moduli are optimized in log-space, then transformed with <code>10 ** x</code> to remain positive across orders of magnitude.</p>
+    <aside class="notes">5:45-7:00. This is the modeling tradeoff. One relaxation time is interpretable but rigid; a chain is more expressive but introduces many parameters and identifiability questions.</aside>
+  </section>
+
+  <section><div class="kicker">The forward pass</div><h2>What <code>compute_all</code> actually does</h2>
+    <div class="flow"><div class="node">params<br>Rs, Tp, dt</div><div class="arrow">→</div><div class="node">walk segments<br>and time steps</div><div class="arrow">→</div><div class="node">compute σ(t)</div><div class="arrow">→</div><div class="node">sum strain<br>components</div><div class="arrow">→</div><div class="node">rows → DataFrame</div></div>
+    <p style="margin-top:1.4em"><code>_compute_all</code> is JIT-compiled with Numba. It returns inspectable columns such as <code>StrainNonLinEl</code>, <code>StrainViscEl</code>, Kelvin-chain strain, and <code>TotStrain</code>.</p>
+    <aside class="notes">7:00-8:15. Walk left to right. The output is deliberately richer than one scalar: plots and tests can see which mechanism contributes what.</aside>
+  </section>
+
+  <section><div class="kicker">Two directions</div><h2>Forward modeling and inverse identification</h2>
+    <div class="grid2"><div class="panel"><h3>Forward problem</h3><p>Parameters + loading history<br><strong>→ predicted strain</strong></p><p class="tiny">Well-defined and fast enough to evaluate repeatedly.</p></div><div class="panel coral"><h3>Inverse problem</h3><p>Observed strain + loading history<br><strong>→ plausible parameters</strong></p><p class="tiny">Potentially non-unique, noisy, and expensive.</p></div></div>
+    <div class="equation" style="margin-top:1em">fitness = − mean [ ε<sub>model</sub>(t) − ε<sub>target</sub>(t) ]<sup>2</sup></div>
+    <aside class="notes">8:15-9:15. The negative sign is because PyGAD maximizes fitness. The repository compares total strain after aligning model and target timestamps.</aside>
+  </section>
+
+  <section><div class="kicker">Approach comparison</div><h2>There is no single “best” implementation</h2>
+    <table><thead><tr><th>Approach</th><th>Strength</th><th>Cost / risk</th><th>Good use</th></tr></thead><tbody>
+      <tr><td><strong>Fortran</strong><br>fixed-input simulation</td><td>Compact, established, fast</td><td>Less composable; parameter search is external</td><td>Reference calculation and legacy continuity</td></tr>
+      <tr><td><strong>Python direct</strong><br>NumPy + Numba</td><td>Inspectable components; testable</td><td>Careful numerical stability still required</td><td>Forward model, plots, experiments</td></tr>
+      <tr><td><strong>Gradient-based fit</strong></td><td>Efficient near a smooth optimum</td><td>Bounds, nonsmooth terms, and local minima</td><td>Many repeated fits with good initialization</td></tr>
+      <tr><td><strong>Genetic algorithm</strong><br>PyGAD</td><td>Global exploration; no derivatives needed</td><td>Many forward evaluations; solutions can be non-unique</td><td>Wide, rough parameter landscapes</td></tr>
+    </tbody></table>
+    <aside class="notes">9:15-10:45. This is the key comparison slide. The project chooses a hybrid engineering position: preserve the Fortran reference, make the Python model inspectable, and use a GA when the inverse surface is difficult.</aside>
+  </section>
+
+  <section><div class="kicker">Why the genetic algorithm?</div><h2>Search first; refine later</h2>
+    <div class="grid2"><div><p>Each candidate is a full parameter vector:</p><p><span class="tag">Tau_s</span><span class="tag">EmNL</span><span class="tag coral">Alpha</span><span class="tag coral">Beta</span><span class="tag gold">19 × Em_F</span><span class="tag">19 × Tau_e_F</span></p><p>A population explores many basins at once. PyGAD stops on fitness or saturation and saves the GA state after every generation.</p></div><div class="panel gold"><div class="big-number">42</div><p>model parameters with the default 19-element chain</p><p class="tiny">That is expressive, but it also makes uncertainty and overfitting part of the scientific result.</p></div></div>
+    <aside class="notes">10:45-12:00. Explain the practical reason for the GA, not as magic but as a derivative-free global search. Mention that the repository can parallelize evaluation and can distribute fitness through Celery.</aside>
+  </section>
+
+  <section><div class="kicker">Data and validation</div><h2>Make the experiment reproducible</h2>
+    <div class="grid3"><div class="panel"><h3>Generate</h3><p><code>./zener.py --generate</code></p><p class="tiny">Known parameters create target data, optionally with triangular noise.</p></div><div class="panel coral"><h3>Optimize</h3><p><code>./zener.py --optimize</code></p><p class="tiny">Candidates are scored against target total strain.</p></div><div class="panel gold"><h3>Check</h3><p><code>pytest</code></p><p class="tiny">Tests cover positivity, no NaNs, and log-parameter transformation.</p></div></div>
+    <aside class="notes">12:00-13:00. The generated-data loop is especially useful pedagogically: because the true parameters are known, you can ask whether the optimizer recovers them before moving to real data.</aside>
+  </section>
+
+  <section><div class="kicker">What can go wrong?</div><h2>A good fit is not automatically a true explanation</h2>
+    <div class="grid2"><ul><li><strong>Identifiability:</strong> different chains can produce nearly the same strain curve.</li><li><strong>Scale:</strong> moduli and times span orders of magnitude.</li><li><strong>Numerics:</strong> long histories can overflow or create NaNs.</li><li><strong>Objective:</strong> fitting total strain can hide a bad component decomposition.</li></ul><div class="panel coral"><h3>Questions to ask</h3><p>Does the fit generalize to a new loading history?</p><p>Are parameters physically plausible?</p><p>What does each component contribute?</p></div></div>
+    <aside class="notes">13:00-14:15. This is where the model becomes a scientific instrument rather than a leaderboard. Encourage validation on held-out signal histories and inspection of component plots.</aside>
+  </section>
+
+  <section><div class="kicker">A pragmatic architecture</div><h2>Reference, model, search, operations</h2>
+    <div class="flow"><div class="node">Fortran<br>reference</div><div class="arrow">+</div><div class="node">Python model<br>Numba</div><div class="arrow">+</div><div class="node">PyGAD<br>optimizer</div><div class="arrow">+</div><div class="node">plots, tests,<br>Celery</div></div>
+    <p style="margin-top:1.5em">Each layer answers a different question: <strong>Does it agree?</strong> <strong>Can we inspect it?</strong> <strong>Can we identify parameters?</strong> <strong>Can we run it at scale?</strong></p>
+    <aside class="notes">14:15-15:15. Summarize the repository as a set of cooperating approaches. The engineering value is in keeping these questions separate and testable.</aside>
+  </section>
+
+  <section><div class="kicker">Takeaways</div><h2>Three ideas to carry forward</h2>
+    <div class="grid3"><div><div class="big-number">01</div><p><strong>Time matters.</strong> Relaxation turns loading history into memory.</p></div><div><div class="big-number">02</div><p><strong>Composition helps.</strong> Nonlinear and Kelvin contributions stay visible.</p></div><div><div class="big-number">03</div><p><strong>Search is a choice.</strong> GA broadens exploration, but validation gives meaning.</p></div></div>
+    <div class="rule"></div><p class="sub">Start with a trusted forward model. Then earn the inverse result.</p>
+    <aside class="notes">15:15-16:00. Close with the sequence: understand the forward physics, compare computational approaches, then interpret the optimizer with skepticism and validation.</aside>
+  </section>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({ hash: true, slideNumber: 'c/t', controls: true, progress: true, transition: 'fade', width: 1280, height: 720, margin: 0.04 });
+</script>
+</body>
+</html>
