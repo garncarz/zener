@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     stop_fitness: float = 0
     stop_saturation: int = 100
 
+    dynamic_population: bool = False
+    dynamic_population_initial: int = 2000
+    dynamic_population_final: int = 20
+
     parallel: int = Field(default_factory=lambda: len(os.sched_getaffinity(0)))
     use_celery: bool = False
     celery_broker_dir: str = Field(default_factory=lambda: os.path.join(os.getcwd(), 'celery_broker'))

@@ -28,6 +28,12 @@ def transform_params(params):
     return params
 
 
+def dynamic_population_size(generation, num_generations, initial_size, final_size):
+    """Return the population size for a generation on a linear schedule."""
+    progress = min(generation / max(num_generations, 1), 1.0)
+    return max(1, round(initial_size + progress * (final_size - initial_size)))
+
+
 class GASubject:
 
     def __init__(self, label):
@@ -167,6 +173,11 @@ class GAAll:
 
     def __init__(self):
         self.subjects = load_subjects(just_labels=settings.use_celery)
+        initial_population = (
+            settings.dynamic_population_initial
+            if settings.dynamic_population
+            else settings.dynamic_population_final
+        )
 
         self.ga = self.load_ga() or pygad.GA(
             num_generations=settings.num_generations,
@@ -174,7 +185,7 @@ class GAAll:
             num_parents_mating=5,
             parent_selection_type='nsga2',  # good for multi-objective
             fitness_func=self.fitness_func,
-            sol_per_pop=20,
+            sol_per_pop=initial_population,
             num_genes=4 + 2 * settings.n_f,
             mutation_percent_genes=30,
             mutation_by_replacement=True,
@@ -227,6 +238,9 @@ class GAAll:
         return [subj.fitness_func(solution) for subj in self.subjects.values()]
 
     def on_generation(self, ga):
+        if settings.dynamic_population:
+            self._resize_population(ga)
+
         logger.info(
             f'Generation {ga.generations_completed}/{settings.num_generations}, '
             f'fitness: {ga.last_generation_fitness}'
@@ -258,6 +272,47 @@ class GAAll:
                 for i in range(1, settings.n_f):
                     statsd.gauge(f'generation.model.Em_F_{i}', Em_F[i])
                     statsd.gauge(f'generation.model.Tau_e_F_{i}', Tau_e_F[i])
+
+    def _resize_population(self, ga):
+        population_size = dynamic_population_size(
+            ga.generations_completed,
+            settings.num_generations,
+            settings.dynamic_population_initial,
+            settings.dynamic_population_final,
+        )
+
+        if population_size == ga.sol_per_pop:
+            return
+
+        old_population = ga.population
+        old_fitness = ga.last_generation_fitness
+        ga.pop_size = (population_size, ga.num_genes)
+        ga.sol_per_pop = population_size
+        ga.num_parents_mating = min(ga.num_parents_mating, population_size)
+        if ga.keep_elitism:
+            ga.num_offspring = population_size - ga.keep_elitism
+        elif ga.keep_parents == -1:
+            ga.num_offspring = population_size - ga.num_parents_mating
+        else:
+            ga.num_offspring = population_size - ga.keep_parents
+
+        ga.initialize_population(
+            ga.allow_duplicate_genes,
+            ga.gene_type,
+            ga.gene_constraint,
+        )
+
+        keep_count = min(len(old_population), population_size)
+        if keep_count:
+            scores = np.asarray(old_fitness)
+            if scores.ndim > 1:
+                scores = np.sum(scores, axis=1)
+            best_indices = np.argsort(scores)[-keep_count:]
+            ga.population[:keep_count] = old_population[best_indices]
+
+        ga.last_generation_parents = None
+        ga.previous_generation_fitness = None
+        ga.last_generation_fitness = ga.cal_pop_fitness()
 
     def run(self):
         self.ga.run()
