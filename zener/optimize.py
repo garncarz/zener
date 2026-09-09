@@ -171,24 +171,29 @@ def load_subjects(just_labels=False):
 
 class GAAll:
 
-    def __init__(self):
+    def __init__(self, ga_options=None):
+        ga_options = ga_options or {}
+        self.persist_state = ga_options.get('persist_state', True)
         self.subjects = load_subjects(just_labels=settings.use_celery)
         initial_population = (
             settings.dynamic_population_initial
             if settings.dynamic_population
-            else settings.dynamic_population_final
+            else ga_options.get('sol_per_pop', settings.dynamic_population_final)
         )
 
-        self.ga = self.load_ga() or pygad.GA(
+        loaded_ga = None if not ga_options.get('load_state', True) else self.load_ga()
+        self.ga = loaded_ga or pygad.GA(
             num_generations=settings.num_generations,
             stop_criteria=[f'reach_{settings.stop_fitness}', f'saturate_{settings.stop_saturation}'],
-            num_parents_mating=5,
-            parent_selection_type='nsga2',  # good for multi-objective
+            num_parents_mating=ga_options.get('num_parents_mating', 5),
+            parent_selection_type=ga_options.get('parent_selection_type', 'nsga2'),
             fitness_func=self.fitness_func,
             sol_per_pop=initial_population,
             num_genes=4 + 2 * settings.n_f,
-            mutation_percent_genes=30,
-            mutation_by_replacement=True,
+            mutation_percent_genes=ga_options.get('mutation_percent_genes', 30),
+            mutation_by_replacement=ga_options.get('mutation_by_replacement', True),
+            keep_elitism=ga_options.get('keep_elitism', 1),
+            crossover_type=ga_options.get('crossover_type', 'single_point'),
             gene_space = [
                 {'low': 0.1, 'high': 1e8},    # Tau_s
                 {'low': 1e-4, 'high': 1e6},    # EmNL
@@ -197,7 +202,7 @@ class GAAll:
                 *[{'low': -1.0, 'high': 12.0} for _ in range(settings.n_f)],  # Em_F - log scale
                 *[{'low': 0.1, 'high': 1e8} for _ in range(settings.n_f)],  # Tau_e_F
             ],
-            save_best_solutions=True,
+            save_best_solutions=ga_options.get('save_best_solutions', True),
         )
         self.ga.on_generation = self.on_generation
 
@@ -245,7 +250,8 @@ class GAAll:
             f'Generation {ga.generations_completed}/{settings.num_generations}, '
             f'fitness: {ga.last_generation_fitness}'
         )
-        self.ga.save(settings.ga_filename)
+        if self.persist_state:
+            self.ga.save(settings.ga_filename)
 
         with statsd.batch():
             statsd.gauge('generation.fitness.max_min', np.max(np.min(ga.last_generation_fitness, axis=1)))

@@ -4,6 +4,7 @@ datadog-api-client
 matplotlib
 numba
 numpy
+optuna
 pandas
 pydantic-settings
 pygad

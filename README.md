@@ -21,6 +21,10 @@ The optional dynamic population experiment starts with a larger population and
 reduces it linearly: `dynamic_population=true dynamic_population_initial=2000
 dynamic_population_final=20 ./zener.py --optimize`.
 
+To tune PyGAD settings with Optuna, run `./metaoptimize.py`. It stores the
+study and report files under `data/metaoptimize/`, including trial data,
+best parameters, and graphs for optimization history and parameter importance.
+
 Using Jupyter Notebook: `jupyter notebook`
 
 Tests are run automatically by GitHub Actions, but they can also be run locally manually: `pytest`
