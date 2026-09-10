@@ -84,8 +84,11 @@ class BatchStatsD:
 
     def _send(self, series_list):
         body = MetricPayload(series=series_list)
-        response = self._api_instance.submit_metrics(body=body)
-        return response
+        try:
+            return self._api_instance.submit_metrics(body=body)
+        except Exception:
+            logger.exception('Unable to send metrics to Datadog; continuing without telemetry')
+            return None
 
 
 if settings.dd_api_key:

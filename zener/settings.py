@@ -57,9 +57,12 @@ logging.getLogger('kombu.connection').setLevel(logging.ERROR)
 settings = Settings()
 
 if settings.sentry_dsn:
-    import sentry_sdk
-    sentry_sdk.init(
-        dsn=settings.sentry_dsn,
-        environment=settings.environment,
-    )
-    sentry_sdk.set_tag('host', settings.host)
+    try:
+        import sentry_sdk
+        sentry_sdk.init(
+            dsn=settings.sentry_dsn,
+            environment=settings.environment,
+        )
+        sentry_sdk.set_tag('host', settings.host)
+    except Exception:
+        logging.getLogger(__name__).exception('Unable to initialize Sentry; continuing without telemetry')
