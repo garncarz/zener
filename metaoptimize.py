@@ -21,7 +21,7 @@ def suggest_population_settings(trial):
     population_mode = trial.suggest_categorical('population_mode', ['fixed', 'dynamic'])
 
     if population_mode == 'fixed':
-        sol_per_pop = trial.suggest_int('sol_per_pop', 20, 500, step=10)
+        sol_per_pop = trial.suggest_int('sol_per_pop', 20, 200, step=10)
         settings.dynamic_population = False
         settings.dynamic_population_initial = sol_per_pop
         settings.dynamic_population_final = sol_per_pop
@@ -32,7 +32,7 @@ def suggest_population_settings(trial):
             'dynamic_population_final': sol_per_pop,
         }
 
-    initial_size = trial.suggest_int('dynamic_population_initial', 100, 2000, step=50)
+    initial_size = trial.suggest_int('dynamic_population_initial', 100, 500, step=50)
     final_size = trial.suggest_int('dynamic_population_final', 20, initial_size, step=10)
     settings.dynamic_population = True
     settings.dynamic_population_initial = initial_size
