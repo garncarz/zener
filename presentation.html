@@ -106,35 +106,35 @@
     <aside class="notes">9:15-10:45. This is the key comparison slide. The project chooses a hybrid engineering position: preserve the Fortran reference, make the Python model inspectable, and use a GA when the inverse surface is difficult.</aside>
   </section>
 
-  <section><div class="kicker">Meta-optimization results</div><h2>Optuna found a stronger GA operating point than the original defaults</h2>
-    <div class="grid2">
-      <div class="panel">
-        <h3>Repository baseline</h3>
-        <p><strong>sol_per_pop</strong> = 20</p>
-        <p><strong>num_parents_mating</strong> = 5</p>
-        <p><strong>mutation_percent_genes</strong> = 30%</p>
-        <p><strong>mutation_by_replacement</strong> = true</p>
-        <p><strong>keep_elitism</strong> = 1</p>
-        <p><strong>crossover_type</strong> = single_point</p>
-      </div>
-      <div class="panel coral">
-        <h3>Best Optuna trial</h3>
-        <p><strong>sol_per_pop</strong> = 90</p>
-        <p><strong>num_parents_mating</strong> = 4</p>
-        <p><strong>mutation_percent_genes</strong> = 20%</p>
-        <p><strong>mutation_by_replacement</strong> = false</p>
-        <p><strong>keep_elitism</strong> = 0</p>
-        <p><strong>crossover_type</strong> = two_points</p>
-        <p class="big-number" style="font-size:1.7em; margin-top:.5em;">score = -5,209</p>
-      </div>
-    </div>
-    <table style="margin-top:1em"><thead><tr><th>Case</th><th>Population</th><th>Parents</th><th>Mutation</th><th>Replace</th><th>Elitism</th><th>Crossover</th><th>Score</th></tr></thead><tbody>
-      <tr><td><strong>Best</strong> (Trial 15)</td><td>90</td><td>4</td><td>20%</td><td>False</td><td>0</td><td>two_points</td><td>-5,209</td></tr>
-      <tr><td>Median</td><td>100</td><td>3</td><td>10%</td><td>True</td><td>0</td><td>two_points</td><td>-55,310</td></tr>
-      <tr><td>Weak</td><td>70</td><td>4</td><td>20%</td><td>False</td><td>0</td><td>two_points</td><td>-397,622,418</td></tr>
-    </tbody></table>
-    <p class="sub" style="margin-top:1em">The Optuna search suggests that a larger population, lower mutation rate, and a stronger two-point crossover can be more stable than the original PyGAD defaults, even though the objective is reported in negative fitness space.</p>
-    <aside class="notes">10:45-11:55. This is the concrete result: the tuned GA is not just different, it is materially better. The table also shows that the search space is jagged: a few configurations are dramatically worse, so the tuning step matters.</aside>
+  <section><div class="kicker">Meta-optimization results</div><h2>What the first Optuna study actually tells us</h2>
+    <table>
+      <thead><tr><th>Evidence in <code>study.db</code></th><th>Interpretation</th><th>Practical conclusion</th></tr></thead>
+      <tbody>
+        <tr><td><strong>27 trials</strong><br>26 completed, 1 failed</td><td>The search ran successfully often enough to expose useful patterns, but it is still a small experiment.</td><td>Use the result as a candidate configuration, not a universal default.</td></tr>
+        <tr><td><strong>MAXIMIZE</strong><br>negative fitness</td><td>Fitness is negative MSE, so the best result is the value closest to zero.</td><td>The direction is correct; raw score magnitude is secondary.</td></tr>
+        <tr><td><strong>Best fixed trial</strong><br>population 90</td><td>The strongest recorded configuration used 4 parents, 20% mutation, no elitism, no replacement, and two-point crossover.</td><td>A broader population and gentler mutation looked more promising than the repository baseline.</td></tr>
+        <tr><td><strong>Repeated pattern</strong><br>two-point crossover</td><td>Two-point crossover appears frequently among the better completed trials.</td><td>It is worth carrying into the longer 100-generation campaign.</td></tr>
+        <tr><td><strong>Dynamic schedules</strong><br>not in this database</td><td>This study predates the fixed-versus-dynamic population search.</td><td>The new 100-generation study must decide whether changing population size helps.</td></tr>
+      </tbody>
+    </table>
+    <p class="sub" style="margin-top:1em">The useful outcome is a direction for the next experiment: retain the promising GA settings, increase the evolutionary horizon, and compare fixed populations against schedules that start large and finish smaller.</p>
+    <aside class="notes">10:45-11:55. Read this as an interpretation of the database, not a leaderboard of raw objective values. The existing study only tested fixed populations; the 100-generation campaign is the experiment that can evaluate dynamic population sizing.</aside>
+  </section>
+
+  <section><div class="kicker">Candidate GA settings</div><h2>Several strong configurations emerged, not just one winner</h2>
+    <table>
+      <thead><tr><th>Study rank</th><th>Population</th><th>Parents</th><th>Mutation</th><th>Replace</th><th>Elitism</th><th>Crossover</th><th>Use in next run</th></tr></thead>
+      <tbody>
+        <tr><td><strong>1</strong> (Trial 15)</td><td>90</td><td>4</td><td>20%</td><td>false</td><td>0</td><td>two_points</td><td>Primary candidate</td></tr>
+        <tr><td><strong>2</strong> (Trial 16)</td><td>90</td><td>2</td><td>10%</td><td>false</td><td>0</td><td>two_points</td><td>Low-mutation comparison</td></tr>
+        <tr><td><strong>3</strong> (Trial 10)</td><td>60</td><td>7</td><td>5%</td><td>false</td><td>0</td><td>two_points</td><td>Compact-population comparison</td></tr>
+        <tr><td><strong>4</strong> (Trial 5)</td><td>70</td><td>4</td><td>30%</td><td>false</td><td>2</td><td>two_points</td><td>Higher-diversity comparison</td></tr>
+        <tr><td><strong>5</strong> (Trial 23)</td><td>70</td><td>6</td><td>30%</td><td>false</td><td>0</td><td>two_points</td><td>Elitism comparison</td></tr>
+        <tr><td><strong>7</strong> (Trial 19)</td><td>80</td><td>2</td><td>20%</td><td>false</td><td>0</td><td>single_point</td><td>Crossover control</td></tr>
+      </tbody>
+    </table>
+    <div class="grid2" style="margin-top:1em;"><div class="panel"><h3>Pattern in the study</h3><p>Population sizes of 60–90, moderate mutation, no replacement, and low or zero elitism recur among the stronger fixed-population trials.</p></div><div class="panel coral"><h3>What this does not prove</h3><p>These are candidates from a short, three-generation study. The 100-generation run and dynamic schedules still need independent comparison.</p></div></div>
+    <aside class="notes">11:55-12:25. This slide gives the audience concrete settings to compare. The rows are deliberately treated as candidates, not as universal truths: they come from a short fixed-population study and should be re-tested over 100 generations.</aside>
   </section>
 
   <section><div class="kicker">Parameter importance</div><h2>Mutation and elitism mattered most</h2>
