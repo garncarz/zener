@@ -9,8 +9,9 @@ from zener.settings import settings
 
 
 @pytest.mark.parametrize('n_f', [0, 1, 2, 3])
-def test_generate_and_optimize_variable_tp(keep_tmp_dir, n_f):
+def test_generate_and_optimize_variable_tp(keep_tmp_dir, monkeypatch, n_f):
     settings.n_f = n_f
+    monkeypatch.setenv('N_F', str(n_f))  # PyGAD workers load settings in fresh processes.
 
     Tp = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250]
     Rsig = [1, -1, 1, 0, -1, 1, -1, 1, 0, -1, 1, -1, 1, 0, -1, 1, -1, 1, 0, -1, 1]
