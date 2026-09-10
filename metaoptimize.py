@@ -16,9 +16,40 @@ from zener.settings import settings
 logger = logging.getLogger(__name__)
 
 
+def suggest_population_settings(trial):
+    """Suggest a fixed or dynamic population strategy for one GA trial."""
+    population_mode = trial.suggest_categorical('population_mode', ['fixed', 'dynamic'])
+
+    if population_mode == 'fixed':
+        sol_per_pop = trial.suggest_int('sol_per_pop', 20, 500, step=10)
+        settings.dynamic_population = False
+        settings.dynamic_population_initial = sol_per_pop
+        settings.dynamic_population_final = sol_per_pop
+        return {
+            'population_mode': population_mode,
+            'sol_per_pop': sol_per_pop,
+            'dynamic_population_initial': sol_per_pop,
+            'dynamic_population_final': sol_per_pop,
+        }
+
+    initial_size = trial.suggest_int('dynamic_population_initial', 100, 2000, step=50)
+    final_size = trial.suggest_int('dynamic_population_final', 20, initial_size, step=10)
+    settings.dynamic_population = True
+    settings.dynamic_population_initial = initial_size
+    settings.dynamic_population_final = final_size
+
+    return {
+        'population_mode': population_mode,
+        'sol_per_pop': initial_size,
+        'dynamic_population_initial': initial_size,
+        'dynamic_population_final': final_size,
+    }
+
+
 def objective(trial, generations):
     """Run one isolated GA trial and return its worst-subject fitness."""
-    population = trial.suggest_int('sol_per_pop', 20, 100, step=10)
+    population_settings = suggest_population_settings(trial)
+    population = population_settings['sol_per_pop']
     options = {
         'load_state': False,
         'persist_state': False,
@@ -37,6 +68,10 @@ def objective(trial, generations):
             'crossover_type', ['single_point', 'two_points', 'uniform']
         ),
     }
+
+    trial.set_user_attr('population_mode', population_settings['population_mode'])
+    trial.set_user_attr('dynamic_population_initial', population_settings['dynamic_population_initial'])
+    trial.set_user_attr('dynamic_population_final', population_settings['dynamic_population_final'])
 
     ga_all = GAAll(options)
     ga_all.ga.random_seed = trial.number
@@ -79,7 +114,7 @@ def save_report(study, output_dir):
 
 @click.command()
 @click.option('--trials', default=20, show_default=True, type=click.IntRange(min=1))
-@click.option('--generations', default=3, show_default=True, type=click.IntRange(min=1))
+@click.option('--generations', default=100, show_default=True, type=click.IntRange(min=1))
 @click.option('--output-dir', default='metaoptimize', show_default=True, type=click.Path())
 @click.option('--study-name', default='zener-meta', show_default=True)
 @click.option('--seed', default=42, show_default=True, type=int)
@@ -91,6 +126,8 @@ def main(trials, generations, output_dir, study_name, seed):
     storage = f'sqlite:///{(output_path / "study.db").resolve()}'
     settings.num_generations = generations
     settings.dynamic_population = False
+    settings.dynamic_population_initial = 200
+    settings.dynamic_population_final = 20
 
     sampler = optuna.samplers.TPESampler(seed=seed)
     study = optuna.create_study(

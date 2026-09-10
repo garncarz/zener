@@ -2,8 +2,58 @@ import numpy as np
 import pygad
 import pytest
 
+from metaoptimize import suggest_population_settings
 from zener.optimize import GAAll, dynamic_population_size, transform_params
 from zener.settings import settings
+
+
+class FakeTrial:
+   def __init__(self, values):
+      self.values = values
+
+   def suggest_categorical(self, name, choices):
+      return self.values[name]
+
+   def suggest_int(self, name, low, high, step=1):
+      return self.values[name]
+
+
+def test_suggest_population_settings_fixed_mode():
+   trial = FakeTrial({
+      'population_mode': 'fixed',
+      'sol_per_pop': 120,
+      'num_parents_mating': 10,
+      'mutation_percent_genes': 25,
+      'mutation_by_replacement': False,
+      'keep_elitism': 1,
+      'crossover_type': 'two_points',
+   })
+
+   result = suggest_population_settings(trial)
+
+   assert result['population_mode'] == 'fixed'
+   assert result['sol_per_pop'] == 120
+   assert settings.dynamic_population is False
+
+
+def test_suggest_population_settings_dynamic_mode():
+   trial = FakeTrial({
+      'population_mode': 'dynamic',
+      'dynamic_population_initial': 1800,
+      'dynamic_population_final': 120,
+      'num_parents_mating': 4,
+      'mutation_percent_genes': 20,
+      'mutation_by_replacement': True,
+      'keep_elitism': 0,
+      'crossover_type': 'single_point',
+   })
+
+   result = suggest_population_settings(trial)
+
+   assert result['population_mode'] == 'dynamic'
+   assert result['dynamic_population_initial'] == 1800
+   assert result['dynamic_population_final'] == 120
+   assert settings.dynamic_population is True
 
 
 @pytest.mark.parametrize('n_f, test_params, expected', [
