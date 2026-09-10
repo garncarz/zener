@@ -317,6 +317,9 @@ class GAAll:
             ga.population[:keep_count] = old_population[best_indices]
 
         ga.last_generation_parents = None
+        ga.last_generation_parents_indices = None
+        ga.last_generation_elitism = None
+        ga.last_generation_elitism_indices = None
         ga.previous_generation_fitness = None
         ga.last_generation_fitness = ga.cal_pop_fitness()
 

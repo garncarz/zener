@@ -1,6 +1,7 @@
 .env
 
 .ipynb_checkpoints/
+.venv/
 celery*/
 control/
 data

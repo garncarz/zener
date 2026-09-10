@@ -103,6 +103,10 @@ def test_dynamic_population_size_resizes_ga(monkeypatch):
       fitness_func=lambda _, solution, __: np.sum(solution),
    )
    ga.generations_completed = 1
+   ga.last_generation_fitness = np.sum(ga.population, axis=1)
+   ga.previous_generation_fitness = ga.last_generation_fitness.copy()
+   ga.last_generation_elitism = ga.population[:1].copy()
+   ga.last_generation_elitism_indices = np.array([0])
 
    GAAll.__new__(GAAll)._resize_population(ga)
 
