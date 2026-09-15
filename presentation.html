@@ -62,7 +62,7 @@
   </section>
 
   <section><div class="kicker">01 / physical intuition</div><h2>Stress is the input. Strain is the response.</h2>
-    <div class="grid2"><div><p><strong>Stress</strong> is the applied force per area. <strong>Strain</strong> is the resulting relative deformation.</p><p>For a time-varying load, the current strain depends on both the present stress and the path taken to reach it.</p><p class="sub">The experiment is a sequence of ramps, holds, reversals, and pauses.</p></div><div class="placeholder">IMAGE PLACEHOLDER<br><span style="font-weight:400">stress / strain specimen or loading rig</span></div></div>
+    <div class="grid2"><div><p><strong>Stress</strong> is the applied force per area. <strong>Strain</strong> is the resulting relative deformation.</p><p>For a time-varying load, the current strain depends on both the present stress and the path taken to reach it.</p><p class="sub">The experiment is a sequence of ramps, holds, reversals, and pauses.</p></div><img src="presentation/intro.png"></div>
     <div class="equation" style="margin-top:1em">σ(t) &nbsp;→&nbsp; ε(t) &nbsp;with memory of &nbsp;σ(τ), 0 ≤ τ ≤ t</div>
   </section>
 
@@ -93,11 +93,8 @@ def fEpsNL(Sig, EmNL, Alpha, Beta):
     <div class="grid2"><div class="panel"><h3>Fitness</h3><p><code>− mean((strain_model − strain_target)²)</code></p><p class="tiny">PyGAD maximizes fitness, so a smaller MSE is closer to zero and therefore better.</p></div><div class="panel orange"><h3>Parallelism</h3><p><code>parallel_processing=['process', N]</code></p><p class="tiny">The six worker processes evaluate candidate solutions within one GA run.</p></div></div>
   </section>
 
-  <section><div class="kicker">06 / observability</div><h2>Telemetry should never become a second failure mode</h2>
-    <div class="grid2"><div class="panel"><h3>Datadog metrics</h3><p><code>statsd.batch()</code> groups generation gauges: fitness, model parameters, generation number.</p><p>The sender catches transport/API failures and logs them without stopping the GA.</p><div class="placeholder" style="min-height:6em;margin-top:.7em">SCREENSHOT PLACEHOLDER<br><span style="font-weight:400">Datadog generation dashboard</span></div></div><div class="panel orange"><h3>Sentry errors</h3><p>Startup initializes Sentry when <code>SENTRY_DSN</code> is configured.</p><p>Initialization failures are logged and ignored, so missing telemetry does not prevent computation.</p><div class="code" style="margin-top:.7em">try:
-    sentry_sdk.init(...)
-except Exception:
-    log.exception('telemetry unavailable')</div></div></div>
+  <section><div class="kicker">06 / observability</div><h2>Logging errors, warnings & metrics</h2>
+    <div class="grid2"><div class="panel"><h3>Datadog metrics</h3><p><code>statsd.batch()</code> groups generation gauges: fitness, model parameters, generation number.</p><div class="placeholder" style="min-height:6em;margin-top:.7em"><img src="presentation/datadog.png"></div></div><div class="panel orange"><h3>Sentry errors</h3><p>Startup initializes Sentry when <code>SENTRY_DSN</code> is configured.</p><div><img src="presentation/sentry.png"></div></div></div>
   </section>
 
   <section><div class="kicker">07 / scale out</div><h2>Celery moves fitness work to workers</h2>
@@ -116,12 +113,12 @@ except Exception:
   <section><div class="kicker">09 / a real run</div><h2>Generated targets make the whole loop inspectable</h2>
     <div class="grid2"><div><p>Known parameters generate a target signal:</p><div class="code">./zener.py --generate
 ./zener.py --optimize
-./zener.py --result</div><p>The optimizer writes a solution and the plotting layer compares target and model traces.</p></div><div class="plot"><div class="plot-label">PLACEHOLDER: data/&lt;case&gt;/plots.png</div></div></div>
+./zener.py --result</div><p>The optimizer writes a solution and the plotting layer compares target and model traces.</p></div><div><img src="presentation/plots.png"></div></div>
     <p class="tiny">Replace the chart placeholder with the <code>plots.png</code> produced by <code>plot_time_series()</code>.</p>
   </section>
 
   <section><div class="kicker">10 / read the result</div><h2>Fit quality is visible in time and in the hysteresis loop</h2>
-    <div class="grid2"><div class="plot"><div class="plot-label">PLACEHOLDER: data/&lt;case&gt;/hysteresis.png</div></div><div><p><code>plot_hysteresis()</code> puts stress against total and viscoelastic strain.</p><p>A close time trace is necessary but not sufficient: the loop shape shows whether the model captures loading and unloading memory.</p><div class="panel orange"><h3>Questions beyond the score</h3><p>Does it generalize to a new loading history? Are the parameters plausible? Which branch explains the delay?</p></div></div></div>
+    <div class="grid2"><div><img src="presentation/hysteresis.png"></div><div><p><code>plot_hysteresis()</code> puts stress against total and viscoelastic strain.</p><p>A close time trace is necessary but not sufficient: the loop shape shows whether the model captures loading and unloading memory.</p><div class="panel orange"><h3>Questions beyond the score</h3><p>Does it generalize to a new loading history? Are the parameters plausible? Which branch explains the delay?</p></div></div></div>
   </section>
 
   <section><div class="kicker">11 / Optuna</div><h2>Meta-optimization searches the PyGAD configuration</h2>
