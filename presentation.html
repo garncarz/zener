@@ -46,6 +46,15 @@
     table { background: var(--white); border-collapse: collapse; font-size: .45em; width: 100%; }
     th, td { border-bottom: 1px solid var(--line); padding: .45em .55em; text-align: left; vertical-align: top; }
     th { color: var(--cyan); font-family: 'Trebuchet MS', sans-serif; }
+    .compact-slide { padding-top: 3.5vh !important; padding-bottom: 3.5vh !important; }
+    .compact-slide h2 { font-size: 1.12em; margin-bottom: .45em; }
+    .compact-slide p { font-size: .53em; line-height: 1.15; }
+    .compact-slide table { font-size: .39em; }
+    .compact-slide th, .compact-slide td { padding: .3em .4em; }
+    .compact-slide .panel { padding: .55em .7em; }
+    .compact-slide .panel p { margin: .15em 0; }
+    .compact-slide .grid2 { gap: 1em; }
+    .compact-slide .tiny { font-size: .42em !important; }
     code { color: var(--cyan); font-size: .83em; }
     .reveal .progress { color: var(--orange); } .reveal .controls { color: var(--cyan); }
     @media (max-width: 700px) { .grid2, .grid3 { grid-template-columns: 1fr; gap: .65em; } .flow { flex-direction: column; } .arrow { transform: rotate(90deg); } .reveal h1 { font-size: 1.7em; } .reveal p, .reveal li { font-size: .58em; } .plot { height: 135px; } }
@@ -126,34 +135,35 @@ def fEpsNL(Sig, EmNL, Alpha, Beta):
     <p style="margin-top:1.2em"><code>TPESampler</code> is adaptive: early trials explore; later trials model promising regions and sample there. It is not a second genetic algorithm.</p>
   </section>
 
-  <section><div class="kicker">12 / meta-optimization results</div><h2>The local <code>pilot</code> study: promising settings are emerging</h2>
-    <div class="grid2"><div class="panel"><div class="number">35 / 37</div><p>35 completed trials, 1 failed, and 1 still running in <code>metaopt/study.db</code>.</p><p>Each completed trial ran the inner PyGAD for <strong>100 generations</strong> on the reduced signal set.</p><p class="tiny">The score is the worst-subject fitness: negative MSE, so closer to zero is better.</p></div><div class="panel orange"><h3>Best completed trial</h3><p><strong>Trial 16</strong> · fitness <strong>−92.72</strong></p><p>Fixed population 20 · 6 parents · 45% mutation · replacement on · elitism 0 · uniform crossover</p></div></div>
-    <table style="margin-top:1em"><thead><tr><th>Search question</th><th>What this study says</th></tr></thead><tbody><tr><td>How many settings?</td><td>Optuna sampled 36 configurations so far; the current run is still adding trials.</td></tr><tr><td>How much refinement?</td><td>Each completed configuration received 100 inner GA generations.</td></tr><tr><td>How expensive?</td><td>Trials run sequentially; six worker processes parallelize individual fitness evaluations.</td></tr></tbody></table>
+  <section class="compact-slide"><div class="kicker">12 / meta-optimization results</div><h2>The local <code>pilot</code> study now includes dynamic populations</h2>
+    <div class="grid2"><div class="panel"><div class="number">104 / 106</div><p>104 completed trials, 1 failed, and 1 still running in <code>metaopt/study.db</code>.</p><p>Each completed trial ran the inner PyGAD for <strong>100 generations</strong> on the reduced signal set.</p><p class="tiny">The score is the worst-subject fitness: negative MSE, so closer to zero is better.</p></div><div class="panel orange"><h3>Best completed trial</h3><p><strong>Trial 102</strong> · fitness <strong>−0.4296</strong></p><p>Dynamic branch, population 500 → 500 · 10 parents · 45% mutation · replacement on · elitism 0 · single-point crossover</p></div></div>
+    <table style="margin-top:1em"><thead><tr><th>Search question</th><th>What this study says</th></tr></thead><tbody><tr><td>Were dynamic populations tested?</td><td>Yes: 12 dynamic trials completed, with one more currently running.</td></tr><tr><td>Did dynamic win?</td><td>Yes. Trial 102 is the current best overall, although its 500 → 500 schedule did not actually shrink.</td></tr><tr><td>How expensive?</td><td>Trials run sequentially; six worker processes parallelize individual fitness evaluations.</td></tr></tbody></table>
   </section>
 
-  <section><div class="kicker">13 / best configurations</div><h2>Several small fixed populations beat the dynamic candidates</h2>
+  <section class="compact-slide"><div class="kicker">13 / best configurations</div><h2>Dynamic trial 102 leads; fixed settings fill the rest of the shortlist</h2>
     <table><thead><tr><th>Trial</th><th>Fitness<br><span class="tiny">closer to 0 is better</span></th><th>Population</th><th>Parents</th><th>Mutation</th><th>Replace</th><th>Elitism</th><th>Crossover</th></tr></thead><tbody>
-      <tr><td><strong>16</strong></td><td><strong>−92.72</strong></td><td>fixed 20</td><td>6</td><td>45%</td><td>true</td><td>0</td><td>uniform</td></tr>
-      <tr><td><strong>35</strong></td><td><strong>−160.23</strong></td><td>fixed 60</td><td>9</td><td>35%</td><td>true</td><td>0</td><td>two_points</td></tr>
-      <tr><td>6</td><td>−196.00</td><td>fixed 20</td><td>9</td><td>40%</td><td>true</td><td>0</td><td>uniform</td></tr>
-      <tr><td>22</td><td>−197.25</td><td>fixed 50</td><td>9</td><td>50%</td><td>false</td><td>0</td><td>single_point</td></tr>
-      <tr><td>19</td><td>−220.51</td><td>fixed 60</td><td>10</td><td>45%</td><td>true</td><td>0</td><td>uniform</td></tr>
-      <tr><td>28</td><td>−227.07</td><td>fixed 40</td><td>5</td><td>50%</td><td>false</td><td>1</td><td>single_point</td></tr>
+      <tr><td><strong>102</strong></td><td><strong>−0.4296</strong></td><td>dynamic 500 → 500</td><td>10</td><td>45%</td><td>true</td><td>0</td><td>single_point</td></tr>
+      <tr><td><strong>46</strong></td><td><strong>−69.61</strong></td><td>fixed 140</td><td>8</td><td>40%</td><td>true</td><td>0</td><td>two_points</td></tr>
+      <tr><td>16</td><td>−92.72</td><td>fixed 20</td><td>6</td><td>45%</td><td>true</td><td>0</td><td>uniform</td></tr>
+      <tr><td>51</td><td>−103.00</td><td>fixed 150</td><td>10</td><td>25%</td><td>true</td><td>0</td><td>two_points</td></tr>
+      <tr><td>75</td><td>−107.26</td><td>fixed 50</td><td>10</td><td>20%</td><td>true</td><td>0</td><td>two_points</td></tr>
+      <tr><td>93</td><td>−123.78</td><td>fixed 170</td><td>9</td><td>30%</td><td>false</td><td>0</td><td>single_point</td></tr>
     </tbody></table>
-    <div class="grid2" style="margin-top:1em"><div class="panel"><h3>Pattern</h3><p>The strongest six are all fixed-population runs with population 20–60 and no elitism in five of six.</p></div><div class="panel yellow"><h3>Interpret cautiously</h3><p>This is one reduced-data study. It ranks configurations for this objective, not universally for every signal family.</p></div></div>
+    <div class="grid2" style="margin-top:1em"><div class="panel"><h3>Dynamic result</h3><p>Dynamic mode has now produced the best score, but the winner kept the population constant at 500. Truly shrinking schedules have not yet beaten the best fixed runs.</p></div><div class="panel yellow"><h3>Interpret cautiously</h3><p>This is one reduced-data study. It ranks configurations for this objective, not universally for every signal family.</p></div></div>
   </section>
 
-  <section><div class="kicker">14 / hyperparameter importance</div><h2>Elitism and mutation explain most of the observed variation</h2>
+  <section><div class="kicker">14 / hyperparameter importance</div><h2>Population schedule now matters in the larger study</h2>
     <div class="grid2"><table><thead><tr><th>Parameter</th><th>Importance</th></tr></thead><tbody>
-      <tr><td><strong>keep_elitism</strong></td><td><strong>0.333</strong></td></tr>
-      <tr><td><strong>mutation_percent_genes</strong></td><td><strong>0.233</strong></td></tr>
-      <tr><td>sol_per_pop</td><td>0.204</td></tr>
-      <tr><td>num_parents_mating</td><td>0.165</td></tr>
-      <tr><td>crossover_type</td><td>0.053</td></tr>
-      <tr><td>mutation_by_replacement</td><td>0.010</td></tr>
-      <tr><td>population_mode</td><td>0.003</td></tr>
-    </tbody></table><div class="panel orange"><div class="number">0.93</div><p>Combined importance of elitism, mutation rate, population size, and parent count.</p><p class="tiny">Calculated with Optuna's parameter-importance analysis from the completed trials.</p><p class="tiny">Dynamic-population parameters have too few observations for reliable importance estimates.</p></div></div>
-    <p class="sub" style="margin-top:1em">The dashboard-style table is reproducible from <code>metaopt/study.db</code> with Optuna's <code>get_param_importances()</code>. It is a guide for the next search, not proof of causality.</p>
+      <tr><td><strong>keep_elitism</strong></td><td><strong>0.255</strong></td></tr>
+      <tr><td><strong>dynamic_population_final</strong></td><td><strong>0.199</strong></td></tr>
+      <tr><td><strong>dynamic_population_initial</strong></td><td><strong>0.164</strong></td></tr>
+      <tr><td>sol_per_pop</td><td>0.138</td></tr>
+      <tr><td>num_parents_mating</td><td>0.119</td></tr>
+      <tr><td>crossover_type</td><td>0.069</td></tr>
+      <tr><td>mutation_percent_genes</td><td>0.055</td></tr>
+      <tr><td>mutation_by_replacement</td><td>0.0002</td></tr>
+    </tbody></table><div class="panel orange"><div class="number">0.62</div><p>Combined importance of elitism and the two dynamic-population bounds.</p><p class="tiny">Calculated with Optuna's parameter-importance analysis from the current completed trials.</p><p class="tiny">The dynamic values are still less stable because only 12 completed trials used that branch.</p></div></div>
+    <p class="sub" style="margin-top:1em">The dashboard-style table is reproducible from <code>metaopt/study.db</code> with Optuna's <code>get_param_importances()</code>. Importance is association with this objective, not proof of causality.</p>
   </section>
 
   <section><div class="kicker">Closing</div><h2>From stress history to a defensible explanation</h2>
